@@ -72,55 +72,185 @@ int read_lvx_file(char *filename)
 			{
 				psize = RAW_POINT_NUM * sizeof(LivoxRawPoint);
 			}
-			// else if (bpd->data_type == kSpherical)
-			// {
-			//     psize = RAW_POINT_NUM * sizeof(LivoxSpherPoint);
-			// }
+			else if (bpd->data_type == kSpherical)
+			{
+				psize = RAW_POINT_NUM * sizeof(LivoxSpherPoint);
+			}
 			else if (bpd->data_type == kExtendCartesian)
 			{
 				psize = SINGLE_POINT_NUM * sizeof(LivoxExtendRawPoint);
 			}
-			// else if (bpd->data_type == kExtendSpherical)
-			// {
-			//     psize = SINGLE_POINT_NUM * sizeof(LivoxExtendSpherPoint);
-			// }
-			// else if (bpd->data_type == kDualExtendCartesian)
-			// {
-			//     psize = DUAL_POINT_NUM * sizeof(LivoxDualExtendRawPoint);
-			// }
-			// else if (bpd->data_type == kDualExtendSpherical)
-			// {
-			//     psize = DUAL_POINT_NUM * sizeof(LivoxDualExtendSpherPoint);
-			// }
-			// else if (bpd->data_type == kImu)
-			// {
-			//     psize = IMU_POINT_NUM * sizeof(LivoxImuPoint);
-			// }
-			// else if (bpd->data_type == kTripleExtendCartesian)
-			// {
-			//     psize = TRIPLE_POINT_NUM * sizeof(LivoxTripleExtendRawPoint);
-			// }
-			// else if (bpd->data_type == kTripleExtendSpherical)
-			// {
-			//     psize = TRIPLE_POINT_NUM * sizeof(LivoxTripleExtendSpherPoint);
-			// }
+			else if (bpd->data_type == kExtendSpherical)
+			{
+				psize = SINGLE_POINT_NUM * sizeof(LivoxExtendSpherPoint);
+			}
+			else if (bpd->data_type == kDualExtendCartesian)
+			{
+				psize = DUAL_POINT_NUM * sizeof(LivoxDualExtendRawPoint);
+			}
+			else if (bpd->data_type == kDualExtendSpherical)
+			{
+				psize = DUAL_POINT_NUM * sizeof(LivoxDualExtendSpherPoint);
+			}
+			else if (bpd->data_type == kImu)
+			{
+				psize = IMU_POINT_NUM * sizeof(LivoxImuPoint);
+			}
+			else if (bpd->data_type == kTripleExtendCartesian)
+			{
+				psize = TRIPLE_POINT_NUM * sizeof(LivoxTripleExtendRawPoint);
+			}
+			else if (bpd->data_type == kTripleExtendSpherical)
+			{
+				psize = TRIPLE_POINT_NUM * sizeof(LivoxTripleExtendSpherPoint);
+			}
 			else
 			{
 				std::cout << "Unknown data " << (uint32_t)bpd->data_type << "\n";
 			}
 #endif
-			fin.read((char *)rxbuf, psize);
-			LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)rxbuf;
-			for (int i = 0; i < SINGLE_POINT_NUM; i++)
-			{
-				Vertex vt;
-				glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
-				glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-				vt.pos = pos;
-				vt.color = color;
-				lvxpc.push_back(vt);
-			}
 			cur_offset += psize;
+
+			if (bpd->data_type == kCartesian)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxRawPoint *lerp = (LivoxRawPoint *)rxbuf;
+				for (int i = 0; i < RAW_POINT_NUM; i++)
+				{
+					Vertex vt;
+					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
+					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
+					vt.pos = pos;
+					vt.color = color;
+					lvxpc.push_back(vt);
+				}
+			}
+			else if (bpd->data_type == kSpherical)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxSpherPoint *lerp = (LivoxSpherPoint *)bpd->raw_point;
+			}
+			else if (bpd->data_type == kExtendCartesian)
+			{
+				std::cout << "kExtendCartesian\n";
+				fin.read((char *)rxbuf, psize);
+				LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)rxbuf;
+				for (int i = 0; i < SINGLE_POINT_NUM; i++)
+				{
+					Vertex vt;
+					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
+					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
+					vt.pos = pos;
+					vt.color = color;
+					lvxpc.push_back(vt);
+				}
+			}
+			else if (bpd->data_type == kExtendSpherical)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxExtendSpherPoint *lerp = (LivoxExtendSpherPoint *)rxbuf;
+			}
+			else if (bpd->data_type == kDualExtendCartesian)
+			{
+				std::cout << "kDualExtendCartesian\n";
+				fin.read((char *)rxbuf, psize);
+				LivoxDualExtendRawPoint *lerp = (LivoxDualExtendRawPoint *)rxbuf;
+				for (int i = 0; i < DUAL_POINT_NUM; i++)
+				{
+					Vertex vt;
+					glm::vec3 pos(lerp[i].x1 / 1000.0, lerp[i].y1 / 1000.0, lerp[i].z1 / 1000.0);
+					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity1);
+					vt.pos = pos;
+					vt.color = color;
+					lvxpc.push_back(vt);
+					pos = glm::vec3(lerp[i].x2 / 1000.0, lerp[i].y2 / 1000.0, lerp[i].z2 / 1000.0);
+					color = glm_lvx_color(lerp[i].reflectivity2);
+					vt.pos = pos;
+					vt.color = color;
+					lvxpc.push_back(vt);
+				}
+			}
+			else if (bpd->data_type == kDualExtendSpherical)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxDualExtendSpherPoint *lerp = (LivoxDualExtendSpherPoint *)rxbuf;
+			}
+			else if (bpd->data_type == kImu)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxImuPoint *lerp = (LivoxImuPoint *)rxbuf;
+			}
+			else if (bpd->data_type == kTripleExtendCartesian)
+			{
+				std::cout << "kTripleExtendCartesian\n";
+				fin.read((char *)rxbuf, psize);
+				LivoxTripleExtendRawPoint *ltep = (LivoxTripleExtendRawPoint *)rxbuf;
+				for (int i = 0; i < TRIPLE_POINT_NUM; i++)
+				{
+					LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)&ltep[i];
+					bool echo_flag = false;
+					for (int j = 0; j < 3; j++)
+					{
+						Vertex vt;
+						glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
+						glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
+						vt.pos = pos;
+						vt.color = color;
+						if ((lerp[i].tag & 0b00110000) == 0b00000000)
+						{
+							// lvxpc.push_back(vt);
+							echo_flag = true;
+						}
+						else if ((lerp[i].tag & 0b00110000) == 0b00010000)
+						{
+							// lvxpc.push_back(vt);
+						}
+						else if ((lerp[i].tag & 0b00110000) == 0b00100000)
+						{
+							// lvxpc.push_back(vt);
+							echo_flag = true;
+						}
+						else if ((lerp[i].tag & 0b00110000) == 0b00110000)
+						{
+							// lvxpc.push_back(vt);
+							echo_flag = true;
+						}
+						else
+						{
+							echo_flag = true;
+							std::cout << "tag!!!\n";
+						}
+					}
+					if (!echo_flag)
+					{
+						for (int j = 0; j < 3; j++)
+						{
+							Vertex vt;
+							glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
+							glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
+							vt.pos = pos;
+							vt.color = color;
+							if ((lerp[i].tag & 0b00110000) == 0b00010000)
+							{
+								lvxpc.push_back(vt);
+							}
+							else
+							{
+								std::cout << "tag!!!\n";
+							}
+						}
+					}
+				}
+			}
+			else if (bpd->data_type == kTripleExtendSpherical)
+			{
+				fin.read((char *)rxbuf, psize);
+				LivoxTripleExtendSpherPoint *lerp = (LivoxTripleExtendSpherPoint *)rxbuf;
+			}
+			else
+			{
+				std::cout << "Unknown data " << (uint32_t)bpd->data_type << "\n";
+			}
 		}
 		fin.seekg(next_offset);
 		cur_offset = next_offset;
