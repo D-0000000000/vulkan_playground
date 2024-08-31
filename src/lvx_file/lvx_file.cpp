@@ -182,7 +182,6 @@ int read_lvx_file(char *filename)
 			}
 			else if (bpd->data_type == kTripleExtendCartesian)
 			{
-				std::cout << "kTripleExtendCartesian\n";
 				fin.read((char *)rxbuf, psize);
 				LivoxTripleExtendRawPoint *ltep = (LivoxTripleExtendRawPoint *)rxbuf;
 				for (int i = 0; i < TRIPLE_POINT_NUM; i++)

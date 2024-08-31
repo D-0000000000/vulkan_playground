@@ -241,14 +241,11 @@ private:
 
 	void mainLoop()
 	{
-		auto tt = std::chrono::steady_clock::now();
 		while (!glfwWindowShouldClose(window))
 		{
 			glfwPollEvents();
 			drawFrame();
 			frame_count++;
-			tt += std::chrono::nanoseconds((int)frame_time);
-			std::this_thread::sleep_until(tt);
 		}
 
 		vkDeviceWaitIdle(device);
