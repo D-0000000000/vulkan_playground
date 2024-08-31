@@ -14,7 +14,7 @@ void keyinput_run()
     return;
 }
 
-void fraps_main(HelloTriangleApplication *app)
+void fraps_main(HVKApp *app)
 {
     auto tt = std::chrono::steady_clock::now();
     uint32_t prev_count = 0, cur_count = 0;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     // read_laser_csv();
     read_lvx_file(argv[1]);
     // read_las_file(argv[1]);
-    HelloTriangleApplication app;
+    HVKApp app;
     std::thread fraps(fraps_main, &app);
 
     try
