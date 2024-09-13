@@ -29,8 +29,8 @@ void keyinput_main(GLFWwindow *window, uint32_t frame_rate)
 		GLFW_KEY_LEFT_SHIFT,
 		GLFW_KEY_LEFT_CONTROL};
 	curpos = glm::vec3(0.0f, 0.0f, 0.0f);
-	curdir = glm::vec3(0.0f, 0.0f, -1.0f);
-	curup = glm::vec3(1.0f, 0.0f, 0.0f);
+	curdir = glm::vec3(1.0f, 0.0f, 0.0f);
+	curup = glm::vec3(0.0f, 0.0f, 1.0f);
 	auto tt = std::chrono::steady_clock::now();
 	while (!onExit)
 	{

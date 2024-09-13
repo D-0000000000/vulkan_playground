@@ -190,55 +190,60 @@ int read_lvx_file(char *filename)
 					bool echo_flag = false;
 					for (int j = 0; j < 3; j++)
 					{
+						// if ((lerp[i].tag & 0b00110000) != 0b00000000)
+						// {
+						// 	continue;
+						// }
 						Vertex vt;
 						glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
 						glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
 						vt.pos = pos;
 						vt.color = color;
-						if ((lerp[i].tag & 0b00110000) == 0b00000000)
-						{
-							// lvxpc.push_back(vt);
-							echo_flag = true;
-						}
-						else if ((lerp[i].tag & 0b00110000) == 0b00010000)
-						{
-							// lvxpc.push_back(vt);
-						}
-						else if ((lerp[i].tag & 0b00110000) == 0b00100000)
-						{
-							// lvxpc.push_back(vt);
-							echo_flag = true;
-						}
-						else if ((lerp[i].tag & 0b00110000) == 0b00110000)
-						{
-							// lvxpc.push_back(vt);
-							echo_flag = true;
-						}
-						else
-						{
-							echo_flag = true;
-							std::cout << "tag!!!\n";
-						}
+						lvxpc.push_back(vt);
+						// if ((lerp[i].tag & 0b00110000) == 0b00000000)
+						// {
+						// 	// lvxpc.push_back(vt);
+						// 	echo_flag = true;
+						// }
+						// else if ((lerp[i].tag & 0b00110000) == 0b00010000)
+						// {
+						// 	// lvxpc.push_back(vt);
+						// }
+						// else if ((lerp[i].tag & 0b00110000) == 0b00100000)
+						// {
+						// 	// lvxpc.push_back(vt);
+						// 	echo_flag = true;
+						// }
+						// else if ((lerp[i].tag & 0b00110000) == 0b00110000)
+						// {
+						// 	// lvxpc.push_back(vt);
+						// 	echo_flag = true;
+						// }
+						// else
+						// {
+						// 	echo_flag = true;
+						// 	std::cout << "tag!!!\n";
+						// }
 					}
-					if (!echo_flag)
-					{
-						for (int j = 0; j < 3; j++)
-						{
-							Vertex vt;
-							glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
-							glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-							vt.pos = pos;
-							vt.color = color;
-							if ((lerp[i].tag & 0b00110000) == 0b00010000)
-							{
-								lvxpc.push_back(vt);
-							}
-							else
-							{
-								std::cout << "tag!!!\n";
-							}
-						}
-					}
+					// if (!echo_flag)
+					// {
+					// 	for (int j = 0; j < 3; j++)
+					// 	{
+					// 		Vertex vt;
+					// 		glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
+					// 		glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
+					// 		vt.pos = pos;
+					// 		vt.color = color;
+					// 		if ((lerp[i].tag & 0b00110000) == 0b00010000)
+					// 		{
+					// 			lvxpc.push_back(vt);
+					// 		}
+					// 		else
+					// 		{
+					// 			std::cout << "tag!!!\n";
+					// 		}
+					// 	}
+					// }
 				}
 			}
 			else if (bpd->data_type == kTripleExtendSpherical)
