@@ -46,6 +46,13 @@ int main(int argc, char *argv[])
 	auto phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
 	phyDev->init();
 	HVKApp app;
+	HVKApp pointcloud2;
+	app.setIndexedVertex(point_vertex, point_idx);
+	for (auto &i : point_vertex)
+	{
+		i.pos.x = -1.0f * i.pos.x;
+	}
+	pointcloud2.setIndexedVertex(point_vertex, point_idx);
 	std::thread fraps(fraps_main);
 
 	try
@@ -53,15 +60,22 @@ int main(int argc, char *argv[])
 		app.setPhyDev(phyDev);
 		app.initVulkan();
 
+		pointcloud2.setPhyDev(phyDev);
+		pointcloud2.initVulkan();
+
 		while (!phyDev->isClosed())
 		{
 			phyDev->mainLoopBegin();
+			phyDev->drawStart();
 			app.drawFrame();
+			pointcloud2.drawFrame();
+			phyDev->drawEnd();
 			frame_count++;
 		}
 		phyDev->mainLoopExit();
 
 		app.cleanup();
+		pointcloud2.cleanup();
 		phyDev->deinit();
 	}
 	catch (const std::exception &e)

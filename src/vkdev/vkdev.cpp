@@ -97,104 +97,6 @@ void HVKPhyDev::setupDebugMessenger()
 	}
 }
 
-void HVKPhyDev::createInstance()
-{
-	if (enableValidationLayers && !checkValidationLayerSupport())
-	{
-		throw std::runtime_error("validation layers requested, but not available!");
-	}
-
-	vk::ApplicationInfo appInfo = vk::ApplicationInfo();
-	appInfo.setPApplicationName("LASVK")
-		.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
-		.setPEngineName("No Engine")
-		.setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
-		.setApiVersion(VK_API_VERSION_1_3);
-
-	vk::InstanceCreateInfo createInfo = vk::InstanceCreateInfo();
-	createInfo.setPApplicationInfo(&appInfo);
-
-	auto extensions = getRequiredExtensions();
-	createInfo.setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
-		.setPpEnabledExtensionNames(extensions.data());
-
-	vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-	if (enableValidationLayers)
-	{
-		createInfo.setEnabledLayerCount(static_cast<uint32_t>(validationLayers.size()))
-			.setPpEnabledLayerNames(validationLayers.data());
-
-		populateDebugMessengerCreateInfo(debugCreateInfo);
-		createInfo.setPNext(&debugCreateInfo);
-	}
-	else
-	{
-		createInfo.setEnabledLayerCount(0)
-			.setPNext(nullptr);
-	}
-
-	if (vk::createInstance(&createInfo, nullptr, &instance) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to create instance!");
-	}
-}
-
-void HVKPhyDev::createSurface()
-{
-	VkSurfaceKHR sf;
-	if (glfwCreateWindowSurface(VkInstance(instance), window, nullptr, &sf) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create window surface!");
-	}
-	surface = vk::SurfaceKHR(sf);
-}
-
-void HVKPhyDev::createLogicalDevice()
-{
-	indices = findQueueFamilies(physicalDevice);
-
-	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
-	{
-		vk::DeviceQueueCreateInfo queueCreateInfo = vk::DeviceQueueCreateInfo();
-		queueCreateInfo.setQueueFamilyIndex(queueFamily)
-			.setQueueCount(1)
-			.setQueuePriorities(queuePriority);
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	vk::PhysicalDeviceFeatures deviceFeatures = vk::PhysicalDeviceFeatures();
-
-	vk::DeviceCreateInfo createInfo = vk::DeviceCreateInfo();
-
-	createInfo.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
-		.setPQueueCreateInfos(queueCreateInfos.data())
-		.setPEnabledFeatures(&deviceFeatures)
-		.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()))
-		.setPpEnabledExtensionNames(deviceExtensions.data());
-
-	if (enableValidationLayers)
-	{
-		createInfo.setEnabledLayerCount(static_cast<uint32_t>(validationLayers.size()))
-			.setPpEnabledLayerNames(validationLayers.data());
-	}
-	else
-	{
-		createInfo.setEnabledLayerCount(0);
-	}
-
-	if (physicalDevice.createDevice(&createInfo, nullptr, &device) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to create logical device!");
-	}
-
-	graphicsQueue = device.getQueue(indices.graphicsFamily.value(), 0);
-	presentQueue = device.getQueue(indices.presentFamily.value(), 0);
-}
-
 // QueueFamilyIndex HVKPhyDev::findGraphicsQueueFamily(vk::PhysicalDevice device)
 // {
 // 	QueueFamilyIndex index;
@@ -337,6 +239,279 @@ bool HVKPhyDev::checkDeviceExtensionSupport(vk::PhysicalDevice device)
 	return requiredExtensions.empty();
 }
 
+vk::SurfaceFormatKHR HVKPhyDev::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
+{
+	for (const auto &availableFormat : availableFormats)
+	{
+		if (availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+		{
+			return availableFormat;
+		}
+	}
+
+	return availableFormats[0];
+}
+
+vk::PresentModeKHR HVKPhyDev::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes)
+{
+	for (const auto &availablePresentMode : availablePresentModes)
+	{
+		if (availablePresentMode == vk::PresentModeKHR::eFifo)
+		{
+			return availablePresentMode;
+		}
+	}
+
+	return vk::PresentModeKHR::eFifo;
+}
+
+vk::Extent2D HVKPhyDev::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
+{
+	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+	{
+		return capabilities.currentExtent;
+	}
+	else
+	{
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		vk::Extent2D actualExtent = {
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)};
+
+		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+		return actualExtent;
+	}
+}
+
+uint32_t HVKPhyDev::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+{
+	vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type!");
+}
+
+vk::ImageView HVKPhyDev::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags)
+{
+	vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo();
+	viewInfo.setImage(image)
+		.setViewType(vk::ImageViewType::e2D)
+		.setFormat(format)
+		.setSubresourceRange(
+			vk::ImageSubresourceRange()
+				.setAspectMask(aspectFlags)
+				.setBaseMipLevel(0)
+				.setLevelCount(1)
+				.setBaseArrayLayer(0)
+				.setLayerCount(1));
+	vk::ImageView imageView = device.createImageView(viewInfo, nullptr);
+	if (!imageView)
+	{
+		throw std::runtime_error("failed to create image view!");
+	}
+
+	return imageView;
+}
+
+vk::Format HVKPhyDev::findSupportedFormat(const std::vector<vk::Format> &&candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+{
+	for (vk::Format format : candidates)
+	{
+		vk::FormatProperties props;
+		physicalDevice.getFormatProperties(format, &props);
+
+		if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
+		{
+			return format;
+		}
+		else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
+		{
+			return format;
+		}
+	}
+
+	throw std::runtime_error("failed to find supported format!");
+}
+
+vk::Format HVKPhyDev::findDepthFormat()
+{
+	return findSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+void HVKPhyDev::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory)
+{
+	vk::ImageCreateInfo imageInfo = vk::ImageCreateInfo();
+	imageInfo.setImageType(vk::ImageType::e2D)
+		.setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
+		.setMipLevels(1)
+		.setArrayLayers(1)
+		.setFormat(format)
+		.setTiling(tiling)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setUsage(usage)
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setSharingMode(vk::SharingMode::eExclusive);
+
+	image = device.createImage(imageInfo, nullptr);
+	if (!image)
+	{
+		throw std::runtime_error("failed to create image!");
+	}
+
+	vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image);
+
+	vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo();
+	allocInfo.setAllocationSize(memRequirements.size)
+		.setMemoryTypeIndex(findMemoryType(memRequirements.memoryTypeBits, properties));
+	imageMemory = device.allocateMemory(allocInfo, nullptr);
+	if (!imageMemory)
+	{
+		throw std::runtime_error("failed to allocate image memory!");
+	}
+
+	device.bindImageMemory(image, imageMemory, 0);
+}
+
+void HVKPhyDev::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+{
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo();
+	allocInfo.setLevel(vk::CommandBufferLevel::ePrimary)
+		.setCommandPool(commandPool)
+		.setCommandBufferCount(1);
+
+	std::vector<vk::CommandBuffer> commandBuffer;
+	commandBuffer = device.allocateCommandBuffers(allocInfo);
+
+	vk::CommandBufferBeginInfo beginInfo = vk::CommandBufferBeginInfo();
+	beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+	commandBuffer[0].begin(beginInfo);
+
+	vk::BufferCopy copyRegion = vk::BufferCopy();
+	copyRegion.setSize(size);
+	commandBuffer[0].copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+
+	commandBuffer[0].end();
+
+	vk::SubmitInfo submitInfo = vk::SubmitInfo();
+	submitInfo.setCommandBufferCount(1)
+		.setPCommandBuffers(&commandBuffer[0]);
+
+	graphicsQueue.submit(1, &submitInfo, nullptr);
+	graphicsQueue.waitIdle();
+
+	device.freeCommandBuffers(commandPool, 1, &commandBuffer[0]);
+}
+
+void HVKPhyDev::createInstance()
+{
+	if (enableValidationLayers && !checkValidationLayerSupport())
+	{
+		throw std::runtime_error("validation layers requested, but not available!");
+	}
+
+	vk::ApplicationInfo appInfo = vk::ApplicationInfo();
+	appInfo.setPApplicationName("LASVK")
+		.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
+		.setPEngineName("No Engine")
+		.setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
+		.setApiVersion(VK_API_VERSION_1_3);
+
+	vk::InstanceCreateInfo createInfo = vk::InstanceCreateInfo();
+	createInfo.setPApplicationInfo(&appInfo);
+
+	auto extensions = getRequiredExtensions();
+	createInfo.setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+		.setPpEnabledExtensionNames(extensions.data());
+
+	vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+	if (enableValidationLayers)
+	{
+		createInfo.setEnabledLayerCount(static_cast<uint32_t>(validationLayers.size()))
+			.setPpEnabledLayerNames(validationLayers.data());
+
+		populateDebugMessengerCreateInfo(debugCreateInfo);
+		createInfo.setPNext(&debugCreateInfo);
+	}
+	else
+	{
+		createInfo.setEnabledLayerCount(0)
+			.setPNext(nullptr);
+	}
+
+	if (vk::createInstance(&createInfo, nullptr, &instance) != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to create instance!");
+	}
+}
+
+void HVKPhyDev::createSurface()
+{
+	VkSurfaceKHR sf;
+	if (glfwCreateWindowSurface(VkInstance(instance), window, nullptr, &sf) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create window surface!");
+	}
+	surface = vk::SurfaceKHR(sf);
+}
+
+void HVKPhyDev::createLogicalDevice()
+{
+	indices = findQueueFamilies(physicalDevice);
+
+	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+	std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+	float queuePriority = 1.0f;
+	for (uint32_t queueFamily : uniqueQueueFamilies)
+	{
+		vk::DeviceQueueCreateInfo queueCreateInfo = vk::DeviceQueueCreateInfo();
+		queueCreateInfo.setQueueFamilyIndex(queueFamily)
+			.setQueueCount(1)
+			.setQueuePriorities(queuePriority);
+		queueCreateInfos.push_back(queueCreateInfo);
+	}
+
+	vk::PhysicalDeviceFeatures deviceFeatures = vk::PhysicalDeviceFeatures();
+
+	vk::DeviceCreateInfo createInfo = vk::DeviceCreateInfo();
+
+	createInfo.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
+		.setPQueueCreateInfos(queueCreateInfos.data())
+		.setPEnabledFeatures(&deviceFeatures)
+		.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()))
+		.setPpEnabledExtensionNames(deviceExtensions.data());
+
+	if (enableValidationLayers)
+	{
+		createInfo.setEnabledLayerCount(static_cast<uint32_t>(validationLayers.size()))
+			.setPpEnabledLayerNames(validationLayers.data());
+	}
+	else
+	{
+		createInfo.setEnabledLayerCount(0);
+	}
+
+	if (physicalDevice.createDevice(&createInfo, nullptr, &device) != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to create logical device!");
+	}
+
+	graphicsQueue = device.getQueue(indices.graphicsFamily.value(), 0);
+	presentQueue = device.getQueue(indices.presentFamily.value(), 0);
+}
+
 void HVKPhyDev::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
@@ -376,4 +551,355 @@ void HVKPhyDev::initWindow()
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 	keyinput_init(window, 60);
+}
+
+void HVKPhyDev::init()
+{
+	deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+	validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+	initWindow();
+	createInstance();
+	setupDebugMessenger();
+	createSurface();
+	pickPhysicalDevice();
+	createLogicalDevice();
+
+	createSwapChain();
+	createImageViews();
+	createRenderPass();
+	createDepthResources();
+	createFramebuffers();
+
+	createCommandPool();
+	createCommandBuffers();
+
+	createSyncObjects();
+}
+
+void HVKPhyDev::deinit()
+{
+	cleanupSwapChain();
+	device.destroyRenderPass(renderPass);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		device.destroySemaphore(renderFinishedSemaphores[i]);
+		device.destroySemaphore(imageAvailableSemaphores[i]);
+		device.destroyFence(inFlightFences[i]);
+	}
+
+	device.destroyCommandPool(commandPool, nullptr);
+
+	device.destroy();
+
+	if (enableValidationLayers)
+	{
+		DestroyDebugUtilsMessengerEXT(VkInstance(instance), debugMessenger, nullptr);
+	}
+
+	instance.destroySurfaceKHR(surface, nullptr);
+	instance.destroy(nullptr);
+
+	glfwDestroyWindow(window);
+
+	glfwTerminate();
+	keyinput_deinit();
+}
+
+bool HVKPhyDev::isClosed()
+{
+	return glfwWindowShouldClose(window);
+}
+
+void HVKPhyDev::createSwapChain()
+{
+	SwapChainSupportDetails swapChainSupport = querySwapChainSupport();
+
+	vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	vk::Extent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+	{
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	vk::SwapchainCreateInfoKHR createInfo = vk::SwapchainCreateInfoKHR();
+	createInfo.setSurface(surface)
+		.setMinImageCount(imageCount)
+		.setImageFormat(surfaceFormat.format)
+		.setImageColorSpace(surfaceFormat.colorSpace)
+		.setImageExtent(extent)
+		.setImageArrayLayers(1)
+		.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
+
+	QueueFamilyIndices indices = findQueueFamilies();
+	uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+	if (indices.graphicsFamily != indices.presentFamily)
+	{
+		createInfo.setImageSharingMode(vk::SharingMode::eConcurrent)
+			.setQueueFamilyIndexCount(2)
+			.setPQueueFamilyIndices(queueFamilyIndices);
+	}
+	else
+	{
+		createInfo.setImageSharingMode(vk::SharingMode::eExclusive);
+	}
+
+	createInfo.setPreTransform(swapChainSupport.capabilities.currentTransform)
+		.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
+		.setPresentMode(presentMode)
+		.setClipped(vk::True);
+
+	swapChain = device.createSwapchainKHR(createInfo);
+	if (!swapChain)
+	{
+		throw std::runtime_error("failed to create swap chain!");
+	}
+
+	device.getSwapchainImagesKHR(swapChain, &imageCount, nullptr);
+	swapChainImages.resize(imageCount);
+	device.getSwapchainImagesKHR(swapChain, &imageCount, swapChainImages.data());
+
+	swapChainImageFormat = surfaceFormat.format;
+	swapChainExtent = extent;
+}
+
+void HVKPhyDev::createImageViews()
+{
+	swapChainImageViews.resize(swapChainImages.size());
+
+	for (size_t i = 0; i < swapChainImages.size(); i++)
+	{
+		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
+	}
+}
+
+void HVKPhyDev::createDepthResources()
+{
+	vk::Format depthFormat = findDepthFormat();
+
+	createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
+	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+}
+
+void HVKPhyDev::createFramebuffers()
+{
+	swapChainFramebuffers.resize(swapChainImageViews.size());
+
+	for (size_t i = 0; i < swapChainImageViews.size(); i++)
+	{
+		std::array<vk::ImageView, 2> attachments = {swapChainImageViews[i], depthImageView};
+
+		vk::FramebufferCreateInfo framebufferInfo = vk::FramebufferCreateInfo();
+		framebufferInfo.setRenderPass(renderPass)
+			.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
+			.setPAttachments(attachments.data())
+			.setWidth(swapChainExtent.width)
+			.setHeight(swapChainExtent.height)
+			.setLayers(1);
+
+		swapChainFramebuffers[i] = device.createFramebuffer(framebufferInfo, nullptr);
+		if (!swapChainFramebuffers[i])
+		{
+			throw std::runtime_error("failed to create framebuffer!");
+		}
+	}
+}
+
+void HVKPhyDev::recreateSwapChain()
+{
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	while (width == 0 || height == 0)
+	{
+		glfwGetFramebufferSize(window, &width, &height);
+		glfwWaitEvents();
+	}
+
+	device.waitIdle();
+
+	cleanupSwapChain();
+
+	createSwapChain();
+	createImageViews();
+	createDepthResources();
+	createFramebuffers();
+}
+
+void HVKPhyDev::cleanupSwapChain()
+{
+	device.destroyImageView(depthImageView);
+	device.destroyImage(depthImage);
+	device.freeMemory(depthImageMemory);
+
+	for (auto framebuffer : swapChainFramebuffers)
+	{
+		device.destroyFramebuffer(framebuffer);
+	}
+
+	for (auto imageView : swapChainImageViews)
+	{
+		device.destroyImageView(imageView);
+	}
+
+	device.destroySwapchainKHR(swapChain);
+}
+
+void HVKPhyDev::createRenderPass()
+{
+	vk::AttachmentDescription colorAttachment = vk::AttachmentDescription();
+	colorAttachment.setFormat(swapChainImageFormat)
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eStore)
+		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+
+	vk::AttachmentDescription depthAttachment = vk::AttachmentDescription();
+	depthAttachment.setFormat(findDepthFormat())
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+	vk::AttachmentReference colorAttachmentRef = vk::AttachmentReference();
+	colorAttachmentRef.setAttachment(0)
+		.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
+	vk::AttachmentReference depthAttachmentRef = vk::AttachmentReference();
+	depthAttachmentRef.setAttachment(1)
+		.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+	vk::SubpassDescription subpass = vk::SubpassDescription();
+	subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+		.setColorAttachmentCount(1)
+		.setPColorAttachments(&colorAttachmentRef)
+		.setPDepthStencilAttachment(&depthAttachmentRef);
+
+	vk::SubpassDependency dependency = vk::SubpassDependency();
+	dependency.setSrcSubpass(vk::SubpassExternal)
+		.setDstSubpass(0)
+		.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput |
+						 vk::PipelineStageFlagBits::eLateFragmentTests)
+		.setSrcAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite)
+		.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput |
+						 vk::PipelineStageFlagBits::eEarlyFragmentTests)
+		.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite |
+						  vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+	std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+	vk::RenderPassCreateInfo renderPassInfo = vk::RenderPassCreateInfo();
+	renderPassInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
+		.setPAttachments(attachments.data())
+		.setSubpassCount(1)
+		.setPSubpasses(&subpass)
+		.setDependencyCount(1)
+		.setPDependencies(&dependency);
+
+	renderPass = device.createRenderPass(renderPassInfo);
+	if (!renderPass)
+	{
+		throw std::runtime_error("failed to create render pass!");
+	}
+}
+
+void HVKPhyDev::createSyncObjects()
+{
+	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+	vk::SemaphoreCreateInfo semaphoreInfo = vk::SemaphoreCreateInfo();
+
+	vk::FenceCreateInfo fenceInfo = vk::FenceCreateInfo();
+	fenceInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		if (device.createSemaphore(&semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != vk::Result::eSuccess ||
+			device.createSemaphore(&semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != vk::Result::eSuccess ||
+			device.createFence(&fenceInfo, nullptr, &inFlightFences[i]) != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("failed to create synchronization objects for a frame!");
+		}
+	}
+}
+
+void HVKPhyDev::createCommandPool()
+{
+	QueueFamilyIndices queueFamilyIndices = findQueueFamilies();
+
+	vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo();
+	poolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+		.setQueueFamilyIndex(queueFamilyIndices.graphicsFamily.value());
+
+	commandPool = device.createCommandPool(poolInfo);
+	if (!commandPool)
+	{
+		throw std::runtime_error("failed to create graphics command pool!");
+	}
+}
+
+void HVKPhyDev::createCommandBuffers()
+{
+	commandBuffers.clear();
+
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo();
+	allocInfo.setCommandPool(commandPool)
+		.setLevel(vk::CommandBufferLevel::ePrimary)
+		.setCommandBufferCount(MAX_FRAMES_IN_FLIGHT);
+
+	commandBuffers = device.allocateCommandBuffers(allocInfo);
+	if (commandBuffers.empty())
+	{
+		throw std::runtime_error("failed to allocate command buffers!");
+	}
+}
+
+void HVKPhyDev::buildCommandBuffer()
+{
+	vk::CommandBufferBeginInfo beginInfo = vk::CommandBufferBeginInfo();
+	if (commandBuffers[currentFrame].begin(&beginInfo) != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to begin recording command buffer!");
+	}
+
+	vk::RenderPassBeginInfo renderPassInfo = vk::RenderPassBeginInfo();
+	renderPassInfo.setRenderPass(renderPass)
+		.setFramebuffer(swapChainFramebuffers[imageIndex])
+		.setRenderArea(vk::Rect2D().setOffset(vk::Offset2D().setX(0).setY(0)).setExtent(swapChainExtent));
+
+	std::array<vk::ClearValue, 2> clearValues{};
+	clearValues[0].color = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+	clearValues[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+
+	renderPassInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size()));
+	renderPassInfo.setPClearValues(clearValues.data());
+
+	commandBuffers[currentFrame].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+	vk::Viewport viewport = vk::Viewport();
+	vk::Extent2D curExtent = swapChainExtent;
+	viewport.setX(0.0f)
+		.setY(0.0f)
+		.setWidth(static_cast<float>(curExtent.width))
+		.setHeight(static_cast<float>(curExtent.height))
+		.setMinDepth(0.0f)
+		.setMaxDepth(1.0f);
+	commandBuffers[currentFrame].setViewport(0, viewport);
+
+	vk::Rect2D scissor = vk::Rect2D();
+	scissor.setOffset(vk::Offset2D().setX(0).setY(0))
+		.setExtent(curExtent);
+	commandBuffers[currentFrame].setScissor(0, scissor);
+
+	return;
 }

@@ -17,6 +17,8 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger);
 
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator);
@@ -24,42 +26,13 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 class HVKPhyDev
 {
 public:
-	bool checkValidationLayerSupport();
+	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 
-	std::vector<const char *> getRequiredExtensions();
+	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory);
 
-	void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT &createInfo);
+	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 
-	void setupDebugMessenger();
-
-	void createInstance();
-
-	void createSurface();
-
-	void createLogicalDevice();
-
-	// QueueFamilyIndex findGraphicsQueueFamily(vk::PhysicalDevice device);
-
-	// QueueFamilyIndex findPresentQueueFamily(vk::PhysicalDevice device);
-
-	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
-
-	QueueFamilyIndices findQueueFamilies();
-
-	bool checkDeviceExtensionSupport(vk::PhysicalDevice device);
-
-	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
-
-	SwapChainSupportDetails querySwapChainSupport();
-
-	bool isDeviceSuitable(vk::PhysicalDevice device);
-
-	void pickPhysicalDevice();
-
-	bool isClosed()
-	{
-		return glfwWindowShouldClose(window);
-	}
+	bool isClosed();
 
 	void mainLoopBegin()
 	{
@@ -73,53 +46,90 @@ public:
 		return;
 	}
 
-	void initPhyDev()
+	void buildCommandBuffer();
+
+	void drawStart()
 	{
-		pickPhysicalDevice();
+		device.waitForFences(inFlightFences[currentFrame], vk::True, UINT64_MAX);
+
+		vk::Result result = device.acquireNextImageKHR(swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
+
+		if (result == vk::Result::eErrorOutOfDateKHR)
+		{
+			recreateSwapChain();
+			return;
+		}
+		else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+		{
+			throw std::runtime_error("failed to acquire swap chain image!");
+		}
+
+		device.resetFences(inFlightFences[currentFrame]);
+
+		commandBuffers[currentFrame].reset(static_cast<vk::CommandBufferResetFlagBits>(0));
+
+		buildCommandBuffer();
+
+		return;
+	}
+
+	void drawEnd()
+	{
+		commandBuffers[currentFrame].endRenderPass();
+		commandBuffers[currentFrame].end();
+
+		vk::SubmitInfo submitInfo = vk::SubmitInfo();
+
+		vk::Semaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+		vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+		submitInfo.setWaitSemaphoreCount(1)
+			.setPWaitSemaphores(waitSemaphores)
+			.setWaitDstStageMask(waitStages)
+			.setCommandBufferCount(1)
+			.setPCommandBuffers(&commandBuffers[currentFrame]);
+
+		vk::Semaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+		submitInfo.setSignalSemaphoreCount(1)
+			.setPSignalSemaphores(signalSemaphores);
+
+		if (graphicsQueue.submit(1, &submitInfo, inFlightFences[currentFrame]) != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
+
+		vk::PresentInfoKHR presentInfo = vk::PresentInfoKHR();
+		presentInfo.setWaitSemaphoreCount(1)
+			.setPWaitSemaphores(signalSemaphores);
+
+		vk::SwapchainKHR swapChains[] = {swapChain};
+		presentInfo.setSwapchainCount(1)
+			.setPSwapchains(swapChains)
+			.setPImageIndices(&imageIndex);
+
+		vk::Result result = presentQueue.presentKHR(presentInfo);
+
+		if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized)
+		{
+			framebufferResized = false;
+			recreateSwapChain();
+		}
+		else if (result != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("failed to present swap chain image!");
+		}
+
+		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+		return;
 	}
 
 	void initWindow();
 
-	void deinit()
-	{
-		device.destroy();
+	void init();
 
-		if (enableValidationLayers)
-		{
-			DestroyDebugUtilsMessengerEXT(VkInstance(instance), debugMessenger, nullptr);
-		}
+	void deinit();
 
-		instance.destroySurfaceKHR(surface, nullptr);
-		instance.destroy(nullptr);
-
-		glfwDestroyWindow(window);
-
-		glfwTerminate();
-		keyinput_deinit();
-	}
-
-	static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
-	{
-		auto app = reinterpret_cast<HVKPhyDev *>(glfwGetWindowUserPointer(window));
-		app->framebufferResized = true;
-	}
-
-	void init()
-	{
-		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-		validationLayers.push_back("VK_LAYER_KHRONOS_validation");
-		initWindow();
-		createInstance();
-		setupDebugMessenger();
-		createSurface();
-		pickPhysicalDevice();
-		createLogicalDevice();
-	}
-
-	// std::shared_ptr<vk::Instance> getInstance()
 	vk::Instance getInstance()
 	{
-		// return std::shared_ptr<vk::Instance>(&instance);
 		return instance;
 	}
 
@@ -143,16 +153,6 @@ public:
 		return window;
 	}
 
-	bool checkFrameBufferResized()
-	{
-		return framebufferResized;
-	}
-
-	void setFrameBufferResized(bool flag)
-	{
-		framebufferResized = flag;
-	}
-
 	uint32_t getGraphicsQueueFamily()
 	{
 		return indices.graphicsFamily.value();
@@ -168,6 +168,31 @@ public:
 		return presentQueue;
 	}
 
+	vk::Extent2D getSwapChainExtent()
+	{
+		return swapChainExtent;
+	}
+
+	vk::RenderPass getRenderPass()
+	{
+		return renderPass;
+	}
+
+	uint32_t getCurrentFrame()
+	{
+		return currentFrame;
+	}
+
+	uint32_t getImageIndex()
+	{
+		return imageIndex;
+	}
+
+	vk::CommandBuffer getCurrentCommandBuffer()
+	{
+		return commandBuffers[currentFrame];
+	}
+
 private:
 	vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	vk::Device device;
@@ -179,14 +204,106 @@ private:
 	vk::Queue graphicsQueue;
 	vk::Queue presentQueue;
 	QueueFamilyIndices indices;
+	uint32_t imageIndex;
+
+	vk::SwapchainKHR swapChain;
+	std::vector<vk::Image> swapChainImages;
+	vk::Format swapChainImageFormat;
+	vk::Extent2D swapChainExtent;
+	std::vector<vk::ImageView> swapChainImageViews;
+	std::vector<vk::Framebuffer> swapChainFramebuffers;
+
+	vk::Image depthImage;
+	vk::DeviceMemory depthImageMemory;
+	vk::ImageView depthImageView;
+
+	vk::RenderPass renderPass;
+
+	std::vector<vk::CommandBuffer> commandBuffers;
+	vk::CommandPool commandPool;
+
+	std::vector<vk::Semaphore> imageAvailableSemaphores;
+	std::vector<vk::Semaphore> renderFinishedSemaphores;
+	std::vector<vk::Fence> inFlightFences;
+	uint32_t currentFrame = 0;
+
 	std::vector<const char *> deviceExtensions;
 
 	std::vector<const char *> validationLayers;
 
 	std::vector<const char *> enabled_extensions{};
 
-	static VKAPI_ATTR VkBool32 VKAPI_CALL
-	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
+	bool checkValidationLayerSupport();
+
+	std::vector<const char *> getRequiredExtensions();
+
+	// QueueFamilyIndex findGraphicsQueueFamily(vk::PhysicalDevice device);
+
+	// QueueFamilyIndex findPresentQueueFamily(vk::PhysicalDevice device);
+
+	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
+
+	QueueFamilyIndices findQueueFamilies();
+
+	bool checkDeviceExtensionSupport(vk::PhysicalDevice device);
+
+	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
+
+	SwapChainSupportDetails querySwapChainSupport();
+
+	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats);
+
+	vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
+
+	vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
+
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+
+	vk::Format findSupportedFormat(const std::vector<vk::Format> &&candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+
+	vk::Format findDepthFormat();
+
+	bool isDeviceSuitable(vk::PhysicalDevice device);
+
+	void pickPhysicalDevice();
+
+	void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT &createInfo);
+
+	void setupDebugMessenger();
+
+	void createInstance();
+
+	void createSurface();
+
+	void createLogicalDevice();
+
+	void createSwapChain();
+
+	void createImageViews();
+
+	void createDepthResources();
+
+	void createFramebuffers();
+
+	void recreateSwapChain();
+
+	void cleanupSwapChain();
+
+	void createRenderPass();
+
+	void createSyncObjects();
+
+	void createCommandBuffers();
+
+	void createCommandPool();
+
+	static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
+	{
+		auto app = reinterpret_cast<HVKPhyDev *>(glfwGetWindowUserPointer(window));
+		app->framebufferResized = true;
+	}
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
 	{
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
