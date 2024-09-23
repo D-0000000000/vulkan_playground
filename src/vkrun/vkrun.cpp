@@ -1,10 +1,7 @@
 #include "vkrun.hpp"
 #include <vulkan/vulkan.hpp>
 
-std::vector<Vertex> vertices;
-std::vector<uint32_t> indices;
-
-void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind)
+void HVKApp::setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind)
 {
 	vertices.clear();
 	indices.clear();
@@ -16,8 +13,6 @@ void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind)
 
 void HVKApp::initVulkan()
 {
-	frame_rate = 60;
-	frame_time = 1000000000.0 / frame_rate;
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
@@ -33,19 +28,6 @@ void HVKApp::initVulkan()
 	createDescriptorSets();
 	createCommandBuffers();
 	createSyncObjects();
-}
-
-void HVKApp::mainLoop()
-{
-	while (!glfwWindowShouldClose(phyDev->getWindow()))
-	{
-		glfwPollEvents();
-
-		drawFrame();
-		frame_count++;
-	}
-
-	phyDev->getDevice().waitIdle();
 }
 
 void HVKApp::cleanupSwapChain()

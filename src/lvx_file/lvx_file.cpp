@@ -1,11 +1,12 @@
 #include "lvx_file.hpp"
-#include "vkrun/vkrun.hpp"
-#include <fstream>
-#include <vector>
-#include <cstdint>
+#include "vkcommon/vkcommon.hpp"
 
-std::vector<Vertex> lvxpc;
-std::vector<uint32_t> lvxind;
+#include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <glm/glm.hpp>
+#include <iostream>
+#include <vector>
 
 glm::vec3 glm_lvx_color(uint8_t ref)
 {
@@ -37,7 +38,7 @@ glm::vec3 glm_lvx_color(uint8_t ref)
 	return glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
 }
 
-int read_lvx_file(char *filename)
+int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32_t> &lvxind)
 {
 	lvxpc.clear();
 	std::fstream fin;
@@ -264,6 +265,5 @@ int read_lvx_file(char *filename)
 	{
 		lvxind.push_back(i);
 	}
-	setIndexedVertex(lvxpc, lvxind);
 	return 0;
 }

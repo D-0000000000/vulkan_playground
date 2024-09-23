@@ -1,14 +1,14 @@
 #include "las_file.hpp"
-#include "vkrun/vkrun.hpp"
 #include "ransac/random_sample_consensus.hpp"
-#include <fstream>
-#include <vector>
+#include "vkcommon/vkcommon.hpp"
+
 #include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <vector>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/vector_angle.hpp>
-
-std::vector<Vertex> laspc;
-std::vector<uint32_t> lasind;
 
 glm::vec3 glm_las_color(uint8_t ref)
 {
@@ -40,7 +40,7 @@ glm::vec3 glm_las_color(uint8_t ref)
 	return glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
 }
 
-int read_las_file(char *filename)
+int read_las_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind)
 {
 	laspc.clear();
 	lasind.clear();
@@ -136,7 +136,6 @@ int read_las_file(char *filename)
 	lasind.push_back(laspc.size());
 	laspc.push_back({lidar_centre, {1.0f, 1.0f, 1.0f}});
 	lasind.push_back(laspc.size());
-	setIndexedVertex(laspc, lasind);
 
 	return 0;
 }

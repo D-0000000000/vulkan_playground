@@ -1,9 +1,11 @@
 #ifndef _LAS_FILE_HPP_
 #define _LAS_FILE_HPP_
 
+#include "vkcommon/vkcommon.hpp"
+
 #include <cstdint>
-#include <fstream>
 #include <cstring>
+#include <fstream>
 
 #pragma pack(1)
 
@@ -155,6 +157,6 @@ struct las_file
 	}
 };
 
-int read_las_file(char *filename);
+int read_las_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind);
 
 #endif

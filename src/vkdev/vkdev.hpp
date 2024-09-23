@@ -56,6 +56,23 @@ public:
 
 	void pickPhysicalDevice();
 
+	bool isClosed()
+	{
+		return glfwWindowShouldClose(window);
+	}
+
+	void mainLoopBegin()
+	{
+		glfwPollEvents();
+		return;
+	}
+
+	void mainLoopExit()
+	{
+		device.waitIdle();
+		return;
+	}
+
 	void initPhyDev()
 	{
 		pickPhysicalDevice();
@@ -99,9 +116,11 @@ public:
 		createLogicalDevice();
 	}
 
-	std::shared_ptr<vk::Instance> getInstance()
+	// std::shared_ptr<vk::Instance> getInstance()
+	vk::Instance getInstance()
 	{
-		return std::shared_ptr<vk::Instance>(&instance);
+		// return std::shared_ptr<vk::Instance>(&instance);
+		return instance;
 	}
 
 	vk::PhysicalDevice getPhysicalDevice()

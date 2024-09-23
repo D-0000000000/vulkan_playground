@@ -38,35 +38,6 @@ const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-struct Vertex
-{
-	// glm::vec2 pos;
-	glm::vec3 pos;
-	glm::vec3 color;
-
-	static vk::VertexInputBindingDescription getBindingDescription()
-	{
-		vk::VertexInputBindingDescription bindingDescription = vk::VertexInputBindingDescription();
-		bindingDescription.setBinding(0)
-			.setStride(sizeof(Vertex))
-			.setInputRate(vk::VertexInputRate::eVertex);
-
-		return bindingDescription;
-	}
-
-	static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
-	{
-		std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
-
-		attributeDescriptions[0] = vk::VertexInputAttributeDescription();
-		attributeDescriptions[0].setBinding(0).setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, pos));
-
-		attributeDescriptions[1].setBinding(0).setLocation(1).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, color));
-
-		return attributeDescriptions;
-	}
-};
-
 struct UniformBufferObject
 {
 	alignas(16) glm::mat4 model;
@@ -74,36 +45,24 @@ struct UniformBufferObject
 	alignas(16) glm::mat4 proj;
 };
 
-extern std::vector<Vertex> vertices;
-extern std::vector<uint32_t> indices;
-
-void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
-
 class HVKApp
 {
 public:
+	void initVulkan();
+
+	void cleanup();
+
+	void drawFrame();
+
+	void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
+
 	void setPhyDev(std::shared_ptr<HVKPhyDev> dev)
 	{
 		phyDev = dev;
 	}
 
-	void run()
-	{
-		initVulkan();
-		mainLoop();
-		cleanup();
-	}
-
-	uint32_t getFrameCount()
-	{
-		return frame_count;
-	}
-
 private:
 	std::shared_ptr<HVKPhyDev> phyDev;
-	uint32_t frame_count;
-	uint32_t frame_rate;
-	float frame_time;
 
 	vk::SwapchainKHR swapChain;
 	std::vector<vk::Image> swapChainImages;
@@ -142,13 +101,10 @@ private:
 	std::vector<vk::Fence> inFlightFences;
 	uint32_t currentFrame = 0;
 
-	void initVulkan();
-
-	void mainLoop();
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
 
 	void cleanupSwapChain();
-
-	void cleanup();
 
 	void recreateSwapChain();
 
@@ -203,8 +159,6 @@ private:
 	void createSyncObjects();
 
 	void updateUniformBuffer(uint32_t currentImage);
-
-	void drawFrame();
 
 	vk::ShaderModule createShaderModule(const std::vector<char> &code);
 

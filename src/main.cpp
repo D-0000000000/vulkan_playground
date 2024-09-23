@@ -7,6 +7,7 @@
 
 static bool onExit = false;
 bool run = false;
+uint32_t frame_count = 0;
 
 void keyinput_run()
 {
@@ -14,15 +15,15 @@ void keyinput_run()
 	return;
 }
 
-void fraps_main(HVKApp *app)
+void fraps_main()
 {
 	auto tt = std::chrono::steady_clock::now();
 	uint32_t prev_count = 0, cur_count = 0;
-	// while (!run)
-	//     ;
+
+	frame_count = 0;
 	while (!onExit)
 	{
-		cur_count = app->getFrameCount();
+		cur_count = frame_count;
 		std::cout << cur_count - prev_count << "\n";
 		prev_count = cur_count;
 		tt += std::chrono::seconds(1);
@@ -37,19 +38,30 @@ int main(int argc, char *argv[])
 		std::cout << "File name\n";
 		return 0;
 	}
-	// read_laser_csv();
-	read_lvx_file(argv[1]);
-	// read_las_file(argv[1]);
+
+	std::vector<Vertex> point_vertex;
+	std::vector<uint32_t> point_idx;
+	read_lvx_file(argv[1], point_vertex, point_idx);
 
 	auto phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
 	phyDev->init();
 	HVKApp app;
-	std::thread fraps(fraps_main, &app);
+	std::thread fraps(fraps_main);
 
 	try
 	{
 		app.setPhyDev(phyDev);
-		app.run();
+		app.initVulkan();
+
+		while (!phyDev->isClosed())
+		{
+			phyDev->mainLoopBegin();
+			app.drawFrame();
+			frame_count++;
+		}
+		phyDev->mainLoopExit();
+
+		app.cleanup();
 		phyDev->deinit();
 	}
 	catch (const std::exception &e)

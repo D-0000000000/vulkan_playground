@@ -1,10 +1,12 @@
 #ifndef _LASER_HPP_
 #define _LASER_HPP_
 
+#include "vkcommon/vkcommon.hpp"
+
 #include <cstdint>
-#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 // struct pointcloud
@@ -34,7 +36,7 @@
 //     }
 // };
 
-int read_laser_csv();
+int read_laser_csv(char *filename, std::vector<Vertex> &spcvk, std::vector<uint32_t> &ind);
 // int read_laser_csv(std::vector<pointcloud> pc);
 
 #endif
