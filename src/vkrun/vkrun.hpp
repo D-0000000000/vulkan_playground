@@ -89,12 +89,9 @@ public:
 
 	void run()
 	{
-		phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
-		phyDev->init();
 		initVulkan();
 		mainLoop();
 		cleanup();
-		phyDev->deinit();
 	}
 
 	uint32_t getFrameCount()

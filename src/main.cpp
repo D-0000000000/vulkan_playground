@@ -40,12 +40,17 @@ int main(int argc, char *argv[])
 	// read_laser_csv();
 	read_lvx_file(argv[1]);
 	// read_las_file(argv[1]);
+
+	auto phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
+	phyDev->init();
 	HVKApp app;
 	std::thread fraps(fraps_main, &app);
 
 	try
 	{
+		app.setPhyDev(phyDev);
 		app.run();
+		phyDev->deinit();
 	}
 	catch (const std::exception &e)
 	{
