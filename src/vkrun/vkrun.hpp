@@ -4,68 +4,39 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
+#include "imgui/imgui.h"
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vulkan/vulkan.hpp>
 
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
 #include <algorithm>
-#include <chrono>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <limits>
 #include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
 #include <optional>
 #include <set>
-#include <chrono>
+#include <stdexcept>
 #include <thread>
+#include <vector>
 
 #include "keyinput/keyinput.hpp"
+#include "vkdev/vkdev.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
-const std::vector<const char *> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"};
-
-const std::vector<const char *> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger);
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator);
-
-struct QueueFamilyIndices
-{
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
-
-	bool isComplete()
-	{
-		return graphicsFamily.has_value() && presentFamily.has_value();
-	}
-};
-
-struct SwapChainSupportDetails
-{
-	vk::SurfaceCapabilitiesKHR capabilities;
-	std::vector<vk::SurfaceFormatKHR> formats;
-	std::vector<vk::PresentModeKHR> presentModes;
-};
 
 struct Vertex
 {
@@ -111,12 +82,19 @@ void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
 class HVKApp
 {
 public:
+	void setPhyDev(std::shared_ptr<HVKPhyDev> dev)
+	{
+		phyDev = dev;
+	}
+
 	void run()
 	{
-		initWindow();
+		phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
+		phyDev->init();
 		initVulkan();
 		mainLoop();
 		cleanup();
+		phyDev->deinit();
 	}
 
 	uint32_t getFrameCount()
@@ -125,20 +103,10 @@ public:
 	}
 
 private:
+	std::shared_ptr<HVKPhyDev> phyDev;
 	uint32_t frame_count;
 	uint32_t frame_rate;
 	float frame_time;
-	GLFWwindow *window;
-
-	vk::Instance instance;
-	VkDebugUtilsMessengerEXT debugMessenger;
-	VkSurfaceKHR surface;
-
-	vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	vk::Device device;
-
-	vk::Queue graphicsQueue;
-	vk::Queue presentQueue;
 
 	vk::SwapchainKHR swapChain;
 	std::vector<vk::Image> swapChainImages;
@@ -177,64 +145,9 @@ private:
 	std::vector<vk::Fence> inFlightFences;
 	uint32_t currentFrame = 0;
 
-	bool framebufferResized = false;
+	void initVulkan();
 
-	void initWindow()
-	{
-		glfwInit();
-
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-
-		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-		glfwSetWindowUserPointer(window, this);
-		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-		keyinput_init(window, 60);
-	}
-
-	static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
-	{
-		auto app = reinterpret_cast<HVKApp *>(glfwGetWindowUserPointer(window));
-		app->framebufferResized = true;
-	}
-
-	void initVulkan()
-	{
-		frame_rate = 60;
-		frame_time = 1000000000.0 / frame_rate;
-		createInstance();
-		setupDebugMessenger();
-		createSurface();
-		pickPhysicalDevice();
-		createLogicalDevice();
-		createSwapChain();
-		createImageViews();
-		createRenderPass();
-		createDescriptorSetLayout();
-		createGraphicsPipeline();
-		createDepthResources();
-		createFramebuffers();
-		createCommandPool();
-		createVertexBuffer();
-		createIndexBuffer();
-		createUniformBuffers();
-		createDescriptorPool();
-		createDescriptorSets();
-		createCommandBuffers();
-		createSyncObjects();
-	}
-
-	void mainLoop()
-	{
-		while (!glfwWindowShouldClose(window))
-		{
-			glfwPollEvents();
-			drawFrame();
-			frame_count++;
-		}
-
-		vkDeviceWaitIdle(device);
-	}
+	void mainLoop();
 
 	void cleanupSwapChain();
 
@@ -242,17 +155,7 @@ private:
 
 	void recreateSwapChain();
 
-	void createInstance();
-
 	void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT &createInfo);
-
-	void setupDebugMessenger();
-
-	void createSurface();
-
-	void pickPhysicalDevice();
-
-	void createLogicalDevice();
 
 	void createSwapChain();
 
@@ -313,18 +216,6 @@ private:
 	vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 
 	vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
-
-	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
-
-	bool isDeviceSuitable(vk::PhysicalDevice device);
-
-	bool checkDeviceExtensionSupport(vk::PhysicalDevice device);
-
-	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
-
-	std::vector<const char *> getRequiredExtensions();
-
-	bool checkValidationLayerSupport();
 
 	static std::vector<char> readFile(const std::string &filename)
 	{

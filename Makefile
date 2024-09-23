@@ -33,9 +33,15 @@ INC_FLAGS += 	\
 -I/usr/include/openni2	\
 -I/usr/include/hdf5/openmpi	\
 -I/usr/lib/x86_64-linux-gnu/openmpi/include	\
--I/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi
+-I/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi	\
+-I/usr/include/freetype2	\
+-I/usr/include/libpng16	\
+-I/usr/include/harfbuzz	\
+-I/usr/include/glib-2.0	\
+-I/usr/lib/glib-2.0/include	\
+-I/usr/include/sysprof-6
 
-CXXFLAGS := -Wall -O2 -std=c++20 -g
+CXXFLAGS := -Wall -O2 -std=c++17 -g
 
 # The -MMD and -MP flags together generate Makefiles for us!
 # These files will have .d instead of .o as the output.
@@ -49,6 +55,7 @@ LDFLAGS :=	\
 -lvulkan	\
 -ldl	\
 -lpthread	\
+-lfreetype
 # -lX11	\
 # -lXxf86vm	\
 # -lXrandr	\
