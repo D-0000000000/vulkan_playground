@@ -25,7 +25,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 	}
 }
 
-bool HVKPhyDev::checkValidationLayerSupport()
+bool HVKContext::checkValidationLayerSupport()
 {
 	uint32_t layerCount;
 	vk::enumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -55,7 +55,7 @@ bool HVKPhyDev::checkValidationLayerSupport()
 	return true;
 }
 
-std::vector<const char *> HVKPhyDev::getRequiredExtensions()
+std::vector<const char *> HVKContext::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
 	const char **glfwExtensions;
@@ -71,7 +71,7 @@ std::vector<const char *> HVKPhyDev::getRequiredExtensions()
 	return extensions;
 }
 
-void HVKPhyDev::populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT &createInfo)
+void HVKContext::populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT &createInfo)
 {
 	createInfo = vk::DebugUtilsMessengerCreateInfoEXT();
 	createInfo.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
@@ -79,7 +79,7 @@ void HVKPhyDev::populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateIn
 		.setPfnUserCallback(debugCallback);
 }
 
-void HVKPhyDev::setupDebugMessenger()
+void HVKContext::setupDebugMessenger()
 {
 	if (!enableValidationLayers)
 		return;
@@ -97,7 +97,7 @@ void HVKPhyDev::setupDebugMessenger()
 	}
 }
 
-// QueueFamilyIndex HVKPhyDev::findGraphicsQueueFamily(vk::PhysicalDevice device)
+// QueueFamilyIndex HVKContext::findGraphicsQueueFamily(vk::PhysicalDevice device)
 // {
 // 	QueueFamilyIndex index;
 // 	std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
@@ -114,7 +114,7 @@ void HVKPhyDev::setupDebugMessenger()
 // 	return index;
 // }
 
-// QueueFamilyIndex HVKPhyDev::findPresentQueueFamily(vk::PhysicalDevice device)
+// QueueFamilyIndex HVKContext::findPresentQueueFamily(vk::PhysicalDevice device)
 // {
 // 	QueueFamilyIndex index;
 // 	std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
@@ -137,7 +137,7 @@ void HVKPhyDev::setupDebugMessenger()
 // 	return index;
 // }
 
-QueueFamilyIndices HVKPhyDev::findQueueFamilies(vk::PhysicalDevice device)
+QueueFamilyIndices HVKContext::findQueueFamilies(vk::PhysicalDevice device)
 {
 	QueueFamilyIndices indices;
 	std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
@@ -168,12 +168,12 @@ QueueFamilyIndices HVKPhyDev::findQueueFamilies(vk::PhysicalDevice device)
 	return indices;
 }
 
-QueueFamilyIndices HVKPhyDev::findQueueFamilies()
+QueueFamilyIndices HVKContext::findQueueFamilies()
 {
 	return findQueueFamilies(physicalDevice);
 }
 
-SwapChainSupportDetails HVKPhyDev::querySwapChainSupport(vk::PhysicalDevice device)
+SwapChainSupportDetails HVKContext::querySwapChainSupport(vk::PhysicalDevice device)
 {
 	SwapChainSupportDetails details;
 
@@ -200,12 +200,12 @@ SwapChainSupportDetails HVKPhyDev::querySwapChainSupport(vk::PhysicalDevice devi
 	return details;
 }
 
-SwapChainSupportDetails HVKPhyDev::querySwapChainSupport()
+SwapChainSupportDetails HVKContext::querySwapChainSupport()
 {
 	return querySwapChainSupport(physicalDevice);
 }
 
-bool HVKPhyDev::isDeviceSuitable(vk::PhysicalDevice device)
+bool HVKContext::isDeviceSuitable(vk::PhysicalDevice device)
 {
 	QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -221,7 +221,7 @@ bool HVKPhyDev::isDeviceSuitable(vk::PhysicalDevice device)
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-bool HVKPhyDev::checkDeviceExtensionSupport(vk::PhysicalDevice device)
+bool HVKContext::checkDeviceExtensionSupport(vk::PhysicalDevice device)
 {
 	uint32_t extensionCount;
 	device.enumerateDeviceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -239,7 +239,7 @@ bool HVKPhyDev::checkDeviceExtensionSupport(vk::PhysicalDevice device)
 	return requiredExtensions.empty();
 }
 
-vk::SurfaceFormatKHR HVKPhyDev::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
+vk::SurfaceFormatKHR HVKContext::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
 {
 	for (const auto &availableFormat : availableFormats)
 	{
@@ -252,7 +252,7 @@ vk::SurfaceFormatKHR HVKPhyDev::chooseSwapSurfaceFormat(const std::vector<vk::Su
 	return availableFormats[0];
 }
 
-vk::PresentModeKHR HVKPhyDev::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes)
+vk::PresentModeKHR HVKContext::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes)
 {
 	for (const auto &availablePresentMode : availablePresentModes)
 	{
@@ -265,7 +265,7 @@ vk::PresentModeKHR HVKPhyDev::chooseSwapPresentMode(const std::vector<vk::Presen
 	return vk::PresentModeKHR::eFifo;
 }
 
-vk::Extent2D HVKPhyDev::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
+vk::Extent2D HVKContext::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
@@ -287,7 +287,7 @@ vk::Extent2D HVKPhyDev::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capab
 	}
 }
 
-uint32_t HVKPhyDev::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+uint32_t HVKContext::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
 {
 	vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
@@ -302,7 +302,7 @@ uint32_t HVKPhyDev::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags 
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-vk::ImageView HVKPhyDev::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags)
+vk::ImageView HVKContext::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags)
 {
 	vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo();
 	viewInfo.setImage(image)
@@ -324,7 +324,7 @@ vk::ImageView HVKPhyDev::createImageView(vk::Image image, vk::Format format, vk:
 	return imageView;
 }
 
-vk::Format HVKPhyDev::findSupportedFormat(const std::vector<vk::Format> &&candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+vk::Format HVKContext::findSupportedFormat(const std::vector<vk::Format> &&candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
 {
 	for (vk::Format format : candidates)
 	{
@@ -344,12 +344,12 @@ vk::Format HVKPhyDev::findSupportedFormat(const std::vector<vk::Format> &&candid
 	throw std::runtime_error("failed to find supported format!");
 }
 
-vk::Format HVKPhyDev::findDepthFormat()
+vk::Format HVKContext::findDepthFormat()
 {
 	return findSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-void HVKPhyDev::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory)
+void HVKContext::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory)
 {
 	vk::ImageCreateInfo imageInfo = vk::ImageCreateInfo();
 	imageInfo.setImageType(vk::ImageType::e2D)
@@ -383,7 +383,7 @@ void HVKPhyDev::createImage(uint32_t width, uint32_t height, vk::Format format, 
 	device.bindImageMemory(image, imageMemory, 0);
 }
 
-void HVKPhyDev::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+void HVKContext::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
 	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo();
 	allocInfo.setLevel(vk::CommandBufferLevel::ePrimary)
@@ -414,7 +414,7 @@ void HVKPhyDev::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::Devic
 	device.freeCommandBuffers(commandPool, 1, &commandBuffer[0]);
 }
 
-void HVKPhyDev::createInstance()
+void HVKContext::createInstance()
 {
 	if (enableValidationLayers && !checkValidationLayerSupport())
 	{
@@ -456,7 +456,7 @@ void HVKPhyDev::createInstance()
 	}
 }
 
-void HVKPhyDev::createSurface()
+void HVKContext::createSurface()
 {
 	VkSurfaceKHR sf;
 	if (glfwCreateWindowSurface(VkInstance(instance), window, nullptr, &sf) != VK_SUCCESS)
@@ -466,7 +466,7 @@ void HVKPhyDev::createSurface()
 	surface = vk::SurfaceKHR(sf);
 }
 
-void HVKPhyDev::createLogicalDevice()
+void HVKContext::createLogicalDevice()
 {
 	indices = findQueueFamilies(physicalDevice);
 
@@ -512,7 +512,7 @@ void HVKPhyDev::createLogicalDevice()
 	presentQueue = device.getQueue(indices.presentFamily.value(), 0);
 }
 
-void HVKPhyDev::pickPhysicalDevice()
+void HVKContext::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
 	instance.enumeratePhysicalDevices(&deviceCount, nullptr);
@@ -540,7 +540,7 @@ void HVKPhyDev::pickPhysicalDevice()
 	}
 }
 
-void HVKPhyDev::initWindow()
+void HVKContext::initWindow()
 {
 	glfwInit();
 
@@ -553,7 +553,7 @@ void HVKPhyDev::initWindow()
 	keyinput_init(window, 60);
 }
 
-void HVKPhyDev::init()
+void HVKContext::init()
 {
 	deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	validationLayers.push_back("VK_LAYER_KHRONOS_validation");
@@ -576,7 +576,7 @@ void HVKPhyDev::init()
 	createSyncObjects();
 }
 
-void HVKPhyDev::deinit()
+void HVKContext::deinit()
 {
 	cleanupSwapChain();
 	device.destroyRenderPass(renderPass);
@@ -606,12 +606,12 @@ void HVKPhyDev::deinit()
 	keyinput_deinit();
 }
 
-bool HVKPhyDev::isClosed()
+bool HVKContext::isClosed()
 {
 	return glfwWindowShouldClose(window);
 }
 
-void HVKPhyDev::createSwapChain()
+void HVKContext::createSwapChain()
 {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport();
 
@@ -667,7 +667,7 @@ void HVKPhyDev::createSwapChain()
 	swapChainExtent = extent;
 }
 
-void HVKPhyDev::createImageViews()
+void HVKContext::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 
@@ -677,7 +677,7 @@ void HVKPhyDev::createImageViews()
 	}
 }
 
-void HVKPhyDev::createDepthResources()
+void HVKContext::createDepthResources()
 {
 	vk::Format depthFormat = findDepthFormat();
 
@@ -685,7 +685,7 @@ void HVKPhyDev::createDepthResources()
 	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
 }
 
-void HVKPhyDev::createFramebuffers()
+void HVKContext::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 
@@ -709,7 +709,7 @@ void HVKPhyDev::createFramebuffers()
 	}
 }
 
-void HVKPhyDev::recreateSwapChain()
+void HVKContext::recreateSwapChain()
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -729,7 +729,7 @@ void HVKPhyDev::recreateSwapChain()
 	createFramebuffers();
 }
 
-void HVKPhyDev::cleanupSwapChain()
+void HVKContext::cleanupSwapChain()
 {
 	device.destroyImageView(depthImageView);
 	device.destroyImage(depthImage);
@@ -748,7 +748,7 @@ void HVKPhyDev::cleanupSwapChain()
 	device.destroySwapchainKHR(swapChain);
 }
 
-void HVKPhyDev::createRenderPass()
+void HVKContext::createRenderPass()
 {
 	vk::AttachmentDescription colorAttachment = vk::AttachmentDescription();
 	colorAttachment.setFormat(swapChainImageFormat)
@@ -811,7 +811,7 @@ void HVKPhyDev::createRenderPass()
 	}
 }
 
-void HVKPhyDev::createSyncObjects()
+void HVKContext::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -833,7 +833,7 @@ void HVKPhyDev::createSyncObjects()
 	}
 }
 
-void HVKPhyDev::createCommandPool()
+void HVKContext::createCommandPool()
 {
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies();
 
@@ -848,7 +848,7 @@ void HVKPhyDev::createCommandPool()
 	}
 }
 
-void HVKPhyDev::createCommandBuffers()
+void HVKContext::createCommandBuffers()
 {
 	commandBuffers.clear();
 
@@ -864,7 +864,7 @@ void HVKPhyDev::createCommandBuffers()
 	}
 }
 
-void HVKPhyDev::buildCommandBuffer()
+void HVKContext::buildCommandBuffer()
 {
 	vk::CommandBufferBeginInfo beginInfo = vk::CommandBufferBeginInfo();
 	if (commandBuffers[currentFrame].begin(&beginInfo) != vk::Result::eSuccess)

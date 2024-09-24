@@ -2,6 +2,7 @@
 #include "las_file/las_file.hpp"
 #include "laser/laser.hpp"
 #include "lvx_file/lvx_file.hpp"
+#include "vkgui/vkgui.hpp"
 #include "vkrun/vkrun.hpp"
 #include <thread>
 
@@ -43,40 +44,32 @@ int main(int argc, char *argv[])
 	std::vector<uint32_t> point_idx;
 	read_lvx_file(argv[1], point_vertex, point_idx);
 
-	auto phyDev = std::shared_ptr<HVKPhyDev>(new HVKPhyDev);
-	phyDev->init();
+	auto context = std::shared_ptr<HVKContext>(new HVKContext);
+	context->init();
 	HVKApp app;
-	HVKApp pointcloud2;
+	// HVKGUI gui;
+
 	app.setIndexedVertex(point_vertex, point_idx);
-	for (auto &i : point_vertex)
-	{
-		i.pos.x = -1.0f * i.pos.x;
-	}
-	pointcloud2.setIndexedVertex(point_vertex, point_idx);
 	std::thread fraps(fraps_main);
 
 	try
 	{
-		app.setPhyDev(phyDev);
-		app.initVulkan();
+		app.setContext(context);
+		app.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
+		app.init();
 
-		pointcloud2.setPhyDev(phyDev);
-		pointcloud2.initVulkan();
-
-		while (!phyDev->isClosed())
+		while (!context->isClosed())
 		{
-			phyDev->mainLoopBegin();
-			phyDev->drawStart();
+			context->mainLoopBegin();
+			context->drawStart();
 			app.drawFrame();
-			pointcloud2.drawFrame();
-			phyDev->drawEnd();
+			context->drawEnd();
 			frame_count++;
 		}
-		phyDev->mainLoopExit();
+		context->mainLoopExit();
 
-		app.cleanup();
-		pointcloud2.cleanup();
-		phyDev->deinit();
+		app.deinit();
+		context->deinit();
 	}
 	catch (const std::exception &e)
 	{

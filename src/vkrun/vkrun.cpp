@@ -11,6 +11,12 @@ void HVKApp::setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &in
 	return;
 }
 
+void HVKApp::init()
+{
+	// topology = vk::PrimitiveTopology::ePointList;
+	initVulkan();
+}
+
 void HVKApp::initVulkan()
 {
 	createDescriptorSetLayout();
@@ -22,27 +28,27 @@ void HVKApp::initVulkan()
 	createDescriptorSets();
 }
 
-void HVKApp::cleanup()
+void HVKApp::deinit()
 {
 
-	phyDev->getDevice().destroyPipeline(graphicsPipeline);
-	phyDev->getDevice().destroyPipelineLayout(pipelineLayout);
+	context->getDevice().destroyPipeline(graphicsPipeline);
+	context->getDevice().destroyPipelineLayout(pipelineLayout);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		phyDev->getDevice().destroyBuffer(uniformBuffers[i]);
-		phyDev->getDevice().freeMemory(uniformBuffersMemory[i]);
+		context->getDevice().destroyBuffer(uniformBuffers[i]);
+		context->getDevice().freeMemory(uniformBuffersMemory[i]);
 	}
 
-	phyDev->getDevice().destroyDescriptorPool(descriptorPool);
+	context->getDevice().destroyDescriptorPool(descriptorPool);
 
-	phyDev->getDevice().destroyDescriptorSetLayout(descriptorSetLayout);
+	context->getDevice().destroyDescriptorSetLayout(descriptorSetLayout);
 
-	phyDev->getDevice().destroyBuffer(indexBuffer);
-	phyDev->getDevice().freeMemory(indexBufferMemory);
+	context->getDevice().destroyBuffer(indexBuffer);
+	context->getDevice().freeMemory(indexBufferMemory);
 
-	phyDev->getDevice().destroyBuffer(vertexBuffer);
-	phyDev->getDevice().freeMemory(vertexBufferMemory);
+	context->getDevice().destroyBuffer(vertexBuffer);
+	context->getDevice().freeMemory(vertexBufferMemory);
 }
 
 void HVKApp::createDescriptorSetLayout()
@@ -58,7 +64,7 @@ void HVKApp::createDescriptorSetLayout()
 	layoutInfo.setBindingCount(1)
 		.setPBindings(&uboLayoutBinding);
 
-	descriptorSetLayout = phyDev->getDevice().createDescriptorSetLayout(layoutInfo);
+	descriptorSetLayout = context->getDevice().createDescriptorSetLayout(layoutInfo);
 	if (!descriptorSetLayout)
 	{
 		throw std::runtime_error("failed to create descriptor set layout!");
@@ -97,7 +103,7 @@ void HVKApp::createGraphicsPipeline()
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly = vk::PipelineInputAssemblyStateCreateInfo();
 
-	inputAssembly.setTopology(vk::PrimitiveTopology::ePointList)
+	inputAssembly.setTopology(topology)
 		.setPrimitiveRestartEnable(vk::False);
 
 	vk::PipelineViewportStateCreateInfo viewportState = vk::PipelineViewportStateCreateInfo();
@@ -149,7 +155,7 @@ void HVKApp::createGraphicsPipeline()
 	pipelineLayoutInfo.setSetLayoutCount(1)
 		.setPSetLayouts(&descriptorSetLayout);
 
-	pipelineLayout = phyDev->getDevice().createPipelineLayout(pipelineLayoutInfo);
+	pipelineLayout = context->getDevice().createPipelineLayout(pipelineLayoutInfo);
 	if (!pipelineLayout)
 	{
 		throw std::runtime_error("failed to create pipeline layout!");
@@ -167,18 +173,18 @@ void HVKApp::createGraphicsPipeline()
 		.setPColorBlendState(&colorBlending)
 		.setPDynamicState(&dynamicState)
 		.setLayout(pipelineLayout)
-		.setRenderPass(phyDev->getRenderPass())
+		.setRenderPass(context->getRenderPass())
 		.setSubpass(0)
 		.setBasePipelineHandle(nullptr);
 
-	graphicsPipeline = phyDev->getDevice().createGraphicsPipeline({}, pipelineInfo).value;
+	graphicsPipeline = context->getDevice().createGraphicsPipeline({}, pipelineInfo).value;
 	if (!graphicsPipeline)
 	{
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 
-	phyDev->getDevice().destroyShaderModule(fragShaderModule);
-	phyDev->getDevice().destroyShaderModule(vertShaderModule);
+	context->getDevice().destroyShaderModule(fragShaderModule);
+	context->getDevice().destroyShaderModule(vertShaderModule);
 }
 
 bool HVKApp::hasStencilComponent(vk::Format format)
@@ -196,16 +202,16 @@ void HVKApp::createVertexBuffer()
 	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
 
 	void *data;
-	phyDev->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
+	context->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
 	memcpy(data, vertices.data(), (size_t)bufferSize);
-	phyDev->getDevice().unmapMemory(stagingBufferMemory);
+	context->getDevice().unmapMemory(stagingBufferMemory);
 
 	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer, vertexBufferMemory);
 
-	phyDev->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+	context->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-	phyDev->getDevice().destroyBuffer(stagingBuffer);
-	phyDev->getDevice().freeMemory(stagingBufferMemory);
+	context->getDevice().destroyBuffer(stagingBuffer);
+	context->getDevice().freeMemory(stagingBufferMemory);
 }
 
 void HVKApp::createIndexBuffer()
@@ -217,16 +223,16 @@ void HVKApp::createIndexBuffer()
 	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
 
 	void *data;
-	phyDev->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
+	context->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
 	memcpy(data, indices.data(), (size_t)bufferSize);
-	phyDev->getDevice().unmapMemory(stagingBufferMemory);
+	context->getDevice().unmapMemory(stagingBufferMemory);
 
 	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer, indexBufferMemory);
 
-	phyDev->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+	context->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-	phyDev->getDevice().destroyBuffer(stagingBuffer);
-	phyDev->getDevice().freeMemory(stagingBufferMemory);
+	context->getDevice().destroyBuffer(stagingBuffer);
+	context->getDevice().freeMemory(stagingBufferMemory);
 }
 
 void HVKApp::createUniformBuffers()
@@ -241,7 +247,7 @@ void HVKApp::createUniformBuffers()
 	{
 		createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffers[i], uniformBuffersMemory[i]);
 
-		phyDev->getDevice().mapMemory(uniformBuffersMemory[i], 0, bufferSize, {}, &uniformBuffersMapped[i]);
+		context->getDevice().mapMemory(uniformBuffersMemory[i], 0, bufferSize, {}, &uniformBuffersMapped[i]);
 	}
 }
 
@@ -255,7 +261,7 @@ void HVKApp::createDescriptorPool()
 		.setPPoolSizes(&poolSize)
 		.setMaxSets(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
 
-	descriptorPool = phyDev->getDevice().createDescriptorPool(poolInfo);
+	descriptorPool = context->getDevice().createDescriptorPool(poolInfo);
 	if (!descriptorPool)
 	{
 		throw std::runtime_error("failed to create descriptor pool!");
@@ -271,7 +277,7 @@ void HVKApp::createDescriptorSets()
 		.setPSetLayouts(layouts.data());
 
 	descriptorSets.clear();
-	descriptorSets = phyDev->getDevice().allocateDescriptorSets(allocInfo);
+	descriptorSets = context->getDevice().allocateDescriptorSets(allocInfo);
 	if (descriptorSets.empty())
 	{
 		throw std::runtime_error("failed to allocate descriptor sets!");
@@ -292,7 +298,7 @@ void HVKApp::createDescriptorSets()
 			.setDescriptorCount(1)
 			.setPBufferInfo(&bufferInfo);
 
-		phyDev->getDevice().updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+		context->getDevice().updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
 	}
 }
 
@@ -303,25 +309,25 @@ void HVKApp::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::M
 		.setUsage(usage)
 		.setSharingMode(vk::SharingMode::eExclusive);
 
-	buffer = phyDev->getDevice().createBuffer(bufferInfo, nullptr);
+	buffer = context->getDevice().createBuffer(bufferInfo, nullptr);
 	if (!buffer)
 	{
 		throw std::runtime_error("failed to create buffer!");
 	}
 
-	vk::MemoryRequirements memRequirements = phyDev->getDevice().getBufferMemoryRequirements(buffer);
+	vk::MemoryRequirements memRequirements = context->getDevice().getBufferMemoryRequirements(buffer);
 
 	vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo();
 	allocInfo.setAllocationSize(memRequirements.size)
-		.setMemoryTypeIndex(phyDev->findMemoryType(memRequirements.memoryTypeBits, properties));
+		.setMemoryTypeIndex(context->findMemoryType(memRequirements.memoryTypeBits, properties));
 
-	bufferMemory = phyDev->getDevice().allocateMemory(allocInfo, nullptr);
+	bufferMemory = context->getDevice().allocateMemory(allocInfo, nullptr);
 	if (!bufferMemory)
 	{
 		throw std::runtime_error("failed to allocate buffer memory!");
 	}
 
-	phyDev->getDevice().bindBufferMemory(buffer, bufferMemory, 0);
+	context->getDevice().bindBufferMemory(buffer, bufferMemory, 0);
 	return;
 }
 
@@ -332,7 +338,7 @@ void HVKApp::recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t image
 	vk::DeviceSize offsets[] = {0};
 	commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 	commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[phyDev->getCurrentFrame()], 0, nullptr);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[context->getCurrentFrame()], 0, nullptr);
 	commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	return;
 }
@@ -346,19 +352,25 @@ void HVKApp::updateUniformBuffer(uint32_t currentImage)
 	glm::vec3 up(0.0f, 0.0f, 0.0f);
 	get_cam_params(eye, center, up);
 	ubo.view = glm::lookAt(eye, center, up);
-	vk::Extent2D curExtent = phyDev->getSwapChainExtent();
+	vk::Extent2D curExtent = context->getSwapChainExtent();
 	ubo.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.1f, 1000.0f);
 	ubo.proj[1][1] *= -1;
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
+void HVKApp::setPrimitiveTopology(vk::PrimitiveTopology top)
+{
+	topology = top;
+	return;
+}
+
 void HVKApp::drawFrame()
 {
-	uint32_t imageIndex = phyDev->getImageIndex();
+	uint32_t imageIndex = context->getImageIndex();
 
-	updateUniformBuffer(phyDev->getCurrentFrame());
+	updateUniformBuffer(context->getCurrentFrame());
 
-	recordCommandBuffer(phyDev->getCurrentCommandBuffer(), imageIndex);
+	recordCommandBuffer(context->getCurrentCommandBuffer(), imageIndex);
 }
 
 vk::ShaderModule HVKApp::createShaderModule(const std::vector<char> &code)
@@ -368,7 +380,7 @@ vk::ShaderModule HVKApp::createShaderModule(const std::vector<char> &code)
 		.setPCode(reinterpret_cast<const uint32_t *>(code.data()));
 
 	vk::ShaderModule shaderModule;
-	if (phyDev->getDevice().createShaderModule(&createInfo, nullptr, &shaderModule) != vk::Result::eSuccess)
+	if (context->getDevice().createShaderModule(&createInfo, nullptr, &shaderModule) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("failed to create shader module!");
 	}

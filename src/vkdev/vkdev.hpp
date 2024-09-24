@@ -23,7 +23,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator);
 
-class HVKPhyDev
+class HVKContext
 {
 public:
 	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
@@ -193,6 +193,8 @@ public:
 		return commandBuffers[currentFrame];
 	}
 
+	SwapChainSupportDetails querySwapChainSupport();
+
 private:
 	vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	vk::Device device;
@@ -249,8 +251,6 @@ private:
 
 	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
 
-	SwapChainSupportDetails querySwapChainSupport();
-
 	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats);
 
 	vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
@@ -299,7 +299,7 @@ private:
 
 	static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 	{
-		auto app = reinterpret_cast<HVKPhyDev *>(glfwGetWindowUserPointer(window));
+		auto app = reinterpret_cast<HVKContext *>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
 

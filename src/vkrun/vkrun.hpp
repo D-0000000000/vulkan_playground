@@ -36,31 +36,26 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-struct UniformBufferObject
-{
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
-};
-
 class HVKApp
 {
 public:
-	void initVulkan();
+	void init();
 
-	void cleanup();
+	void deinit();
+
+	void setPrimitiveTopology(vk::PrimitiveTopology top);
 
 	void drawFrame();
 
 	void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
 
-	void setPhyDev(std::shared_ptr<HVKPhyDev> dev)
+	void setContext(std::shared_ptr<HVKContext> dev)
 	{
-		phyDev = dev;
+		context = dev;
 	}
 
 private:
-	std::shared_ptr<HVKPhyDev> phyDev;
+	std::shared_ptr<HVKContext> context;
 
 	vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
@@ -80,6 +75,10 @@ private:
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+
+	vk::PrimitiveTopology topology;
+
+	void initVulkan();
 
 	void createDescriptorSetLayout();
 

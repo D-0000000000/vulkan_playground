@@ -1,8 +1,8 @@
 
 #include <GLFW/glfw3.h>
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <cstdint>
 #include <thread>
 
 static bool onExit = false;
