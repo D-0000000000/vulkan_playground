@@ -218,7 +218,9 @@ bool HVKContext::isDeviceSuitable(vk::PhysicalDevice device)
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-	return indices.isComplete() && extensionsSupported && swapChainAdequate;
+	vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
+
+	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 bool HVKContext::checkDeviceExtensionSupport(vk::PhysicalDevice device)
@@ -383,7 +385,7 @@ void HVKContext::createImage(uint32_t width, uint32_t height, vk::Format format,
 	device.bindImageMemory(image, imageMemory, 0);
 }
 
-void HVKContext::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+vk::CommandBuffer HVKContext::beginSingleTimeCommands()
 {
 	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo();
 	allocInfo.setLevel(vk::CommandBufferLevel::ePrimary)
@@ -398,20 +400,82 @@ void HVKContext::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::Devi
 
 	commandBuffer[0].begin(beginInfo);
 
-	vk::BufferCopy copyRegion = vk::BufferCopy();
-	copyRegion.setSize(size);
-	commandBuffer[0].copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+	return commandBuffer[0];
+}
 
-	commandBuffer[0].end();
+void HVKContext::endSingleTimeCommands(vk::CommandBuffer commandBuffer)
+{
+	commandBuffer.end();
 
 	vk::SubmitInfo submitInfo = vk::SubmitInfo();
 	submitInfo.setCommandBufferCount(1)
-		.setPCommandBuffers(&commandBuffer[0]);
+		.setPCommandBuffers(&commandBuffer);
 
 	graphicsQueue.submit(1, &submitInfo, nullptr);
 	graphicsQueue.waitIdle();
 
-	device.freeCommandBuffers(commandPool, 1, &commandBuffer[0]);
+	device.freeCommandBuffers(commandPool, 1, &commandBuffer);
+}
+
+void HVKContext::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+{
+	vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+
+	vk::BufferCopy copyRegion = vk::BufferCopy();
+	copyRegion.setSize(size);
+	commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+
+	endSingleTimeCommands(commandBuffer);
+}
+
+void HVKContext::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t heigth)
+{
+	vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+
+	vk::BufferImageCopy region = vk::BufferImageCopy();
+	region.setBufferOffset(0)
+		.setBufferRowLength(0)
+		.setBufferImageHeight(0)
+		.setImageSubresource(vk::ImageSubresourceLayers().setAspectMask(vk::ImageAspectFlagBits::eColor).setMipLevel(0).setBaseArrayLayer(0).setLayerCount(1))
+		.setImageOffset(vk::Offset3D(0, 0, 0))
+		.setImageExtent(vk::Extent3D(width, heigth, 1));
+	commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
+
+	endSingleTimeCommands(commandBuffer);
+}
+
+void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+{
+	vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+	vk::ImageMemoryBarrier barrier = vk::ImageMemoryBarrier();
+	barrier.setOldLayout(oldLayout)
+		.setNewLayout(newLayout)
+		.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+		.setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
+		.setImage(image)
+		.setSubresourceRange(vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setBaseMipLevel(0).setLevelCount(1).setBaseArrayLayer(0).setLayerCount(1));
+
+	vk::PipelineStageFlags sourceStage;
+	vk::PipelineStageFlags destinationStage;
+
+	if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+	{
+		barrier.setSrcAccessMask(vk::AccessFlagBits::eNone)
+			.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+		sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+		destinationStage = vk::PipelineStageFlagBits::eTransfer;
+	}
+	else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+	{
+
+		barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+			.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+		sourceStage = vk::PipelineStageFlagBits::eTransfer;
+		destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
+	}
+
+	commandBuffer.pipelineBarrier(sourceStage, destinationStage, vk::DependencyFlags(0), 0, nullptr, 0, nullptr, 1, &barrier);
+	endSingleTimeCommands(commandBuffer);
 }
 
 void HVKContext::createInstance()
@@ -484,6 +548,7 @@ void HVKContext::createLogicalDevice()
 	}
 
 	vk::PhysicalDeviceFeatures deviceFeatures = vk::PhysicalDeviceFeatures();
+	deviceFeatures.setSamplerAnisotropy(vk::True);
 
 	vk::DeviceCreateInfo createInfo = vk::DeviceCreateInfo();
 

@@ -30,7 +30,17 @@ public:
 
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory);
 
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+
+	vk::CommandBuffer beginSingleTimeCommands();
+
+	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
+
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+
+	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t heigth);
+
+	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 
 	bool isClosed();
 
@@ -256,8 +266,6 @@ private:
 	vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 
 	vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
-
-	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
 
 	vk::Format findSupportedFormat(const std::vector<vk::Format> &&candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
 

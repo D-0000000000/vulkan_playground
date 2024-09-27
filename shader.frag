@@ -4,7 +4,8 @@ layout(location = 0) in vec3 fragColor;
 
 layout(location = 0) out vec4 outColor;
 
-void main() {
+void main()
+{
     // vec2 pos=gl_PointCoord-vec2(0.5f,0.5f);
     // float dist =length(pos);
     // if(dist>0.5)

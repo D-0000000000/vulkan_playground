@@ -21,8 +21,8 @@ DEPS := $(OBJS:.o=.d)
 
 # Every folder in ./src will need to be passed to GCC so that it can find header files
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
-INC_DIRS +=	\
-/opt/ros/noetic/include	
+# INC_DIRS +=	\
+# /opt/ros/noetic/include	
 
 # Add a prefix to INC_DIRS. So moduleA would become -ImoduleA. GCC understands this -I flag
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
@@ -55,7 +55,8 @@ LDFLAGS :=	\
 -lvulkan	\
 -ldl	\
 -lpthread	\
--lfreetype
+-lfreetype	\
+-lspng
 # -lX11	\
 # -lXxf86vm	\
 # -lXrandr	\
