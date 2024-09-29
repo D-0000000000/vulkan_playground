@@ -48,8 +48,12 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 	uint8_t rxbuf[sizeof(LvxBasePackDetail)];
 	fin.read((char *)rxbuf, sizeof(LvxFilePublicHeader));
 	fin.read((char *)rxbuf, sizeof(LvxFilePrivateHeader));
+	uint8_t device_count = ((LvxFilePrivateHeader *)rxbuf)->device_count;
+	for (int i = 0; i < device_count; i++)
+	{
 	fin.read((char *)rxbuf, sizeof(LvxDeviceInfo));
-	size_t cur_offset = sizeof(LvxFilePublicHeader) + sizeof(LvxFilePrivateHeader) + sizeof(LvxDeviceInfo);
+	}
+	size_t cur_offset = sizeof(LvxFilePublicHeader) + sizeof(LvxFilePrivateHeader) + device_count * sizeof(LvxDeviceInfo);
 	while (cur_offset < file_size)
 	{
 		memset(rxbuf, 0, sizeof(FrameHeader));
@@ -251,10 +255,6 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 			{
 				fin.read((char *)rxbuf, psize);
 				LivoxTripleExtendSpherPoint *lerp = (LivoxTripleExtendSpherPoint *)rxbuf;
-			}
-			else
-			{
-				std::cout << "Unknown data " << (uint32_t)bpd->data_type << "\n";
 			}
 		}
 		fin.seekg(next_offset);

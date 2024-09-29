@@ -77,7 +77,16 @@ void HVKMesh::createTextureImage()
 	vk::DeviceSize imageSize = image_size;
 	auto image = new unsigned char[imageSize];
 	ret = spng_decode_image(ctx, image, image_size, SPNG_FMT_RGBA8, 0);
+	auto revimage = new unsigned char[imageSize];
+	memcpy(revimage, image, imageSize);
+	for (int i = 0; i < ihdr.height; i++)
+	{
+		memcpy(image + i * ihdr.width * 4, revimage + (ihdr.height - i - 1) * ihdr.width * 4, ihdr.width * 4);
+	}
+	delete[] revimage;
 	spng_ctx_free(ctx);
+
+	mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(ihdr.width, ihdr.height)))) + 1;
 
 	vk::Buffer stagingBuffer;
 	vk::DeviceMemory stagingBufferMemory;
@@ -89,12 +98,11 @@ void HVKMesh::createTextureImage()
 	// stbi_image_free(pixels);
 	delete[] image;
 
-	context->createImage(ihdr.width, ihdr.height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, textureImage, textureImageMemory);
-	// context->createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, textureImage, textureImageMemory);
-	context->transitionImageLayout(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+	context->createImage(ihdr.width, ihdr.height, mipLevels, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, textureImage, textureImageMemory);
+	context->transitionImageLayout(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, mipLevels);
 	context->copyBufferToImage(stagingBuffer, textureImage, ihdr.width, ihdr.height);
-	// context->copyBufferToImage(stagingBuffer, textureImage, texWidth, texHeight);
-	context->transitionImageLayout(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+	// context->transitionImageLayout(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, mipLevels);
+	context->generateMipmaps(textureImage, vk::Format::eR8G8B8A8Srgb, ihdr.width, ihdr.height, mipLevels);
 
 	context->getDevice().destroyBuffer(stagingBuffer);
 	context->getDevice().freeMemory(stagingBufferMemory);
@@ -104,7 +112,7 @@ void HVKMesh::createTextureImage()
 
 void HVKMesh::createTextureImageView()
 {
-	textureImageView = context->createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
+	textureImageView = context->createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, mipLevels);
 }
 
 void HVKMesh::createTextureSampler()
@@ -208,7 +216,7 @@ void HVKMesh::createGraphicsPipeline()
 
 	vk::PipelineMultisampleStateCreateInfo multisampling = vk::PipelineMultisampleStateCreateInfo();
 	multisampling.setSampleShadingEnable(vk::False)
-		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
+		.setRasterizationSamples(context->getSampleCount());
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil = vk::PipelineDepthStencilStateCreateInfo();
 	depthStencil.setDepthTestEnable(vk::True)

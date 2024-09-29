@@ -56,6 +56,7 @@ private:
 	vk::Buffer indexBuffer;
 	vk::DeviceMemory indexBufferMemory;
 
+	uint32_t mipLevels;
 	vk::Image textureImage;
 	vk::DeviceMemory textureImageMemory;
 	vk::ImageView textureImageView;

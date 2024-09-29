@@ -26,11 +26,13 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 class HVKContext
 {
 public:
+	SwapChainSupportDetails querySwapChainSupport();
+
 	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 
-	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory);
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory);
 
-	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels);
 
 	vk::CommandBuffer beginSingleTimeCommands();
 
@@ -40,7 +42,9 @@ public:
 
 	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t heigth);
 
-	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
+
+	void generateMipmaps(vk::Image image, vk::Format format, int32_t width, int32_t height, uint32_t mipLevels);
 
 	bool isClosed();
 
@@ -203,7 +207,10 @@ public:
 		return commandBuffers[currentFrame];
 	}
 
-	SwapChainSupportDetails querySwapChainSupport();
+	vk::SampleCountFlagBits getSampleCount()
+	{
+		return msaaSamples;
+	}
 
 private:
 	vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -225,6 +232,10 @@ private:
 	std::vector<vk::ImageView> swapChainImageViews;
 	std::vector<vk::Framebuffer> swapChainFramebuffers;
 
+	vk::Image colorImage;
+	vk::DeviceMemory colorImageMemory;
+	vk::ImageView colorImageView;
+
 	vk::Image depthImage;
 	vk::DeviceMemory depthImageMemory;
 	vk::ImageView depthImageView;
@@ -239,6 +250,8 @@ private:
 	std::vector<vk::Fence> inFlightFences;
 	uint32_t currentFrame = 0;
 
+	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
+
 	std::vector<const char *> deviceExtensions;
 
 	std::vector<const char *> validationLayers;
@@ -248,6 +261,8 @@ private:
 	bool checkValidationLayerSupport();
 
 	std::vector<const char *> getRequiredExtensions();
+
+	vk::SampleCountFlagBits getMaxUsableSampleCount();
 
 	// QueueFamilyIndex findGraphicsQueueFamily(vk::PhysicalDevice device);
 
@@ -288,6 +303,8 @@ private:
 	void createSwapChain();
 
 	void createImageViews();
+
+	void createColorResources();
 
 	void createDepthResources();
 

@@ -97,6 +97,38 @@ void HVKContext::setupDebugMessenger()
 	}
 }
 
+vk::SampleCountFlagBits HVKContext::getMaxUsableSampleCount()
+{
+	vk::PhysicalDeviceProperties physicalDeviceProperties = physicalDevice.getProperties();
+	vk::SampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+	if (counts & vk::SampleCountFlagBits::e64)
+	{
+		return vk::SampleCountFlagBits::e64;
+	}
+	if (counts & vk::SampleCountFlagBits::e32)
+	{
+		return vk::SampleCountFlagBits::e32;
+	}
+	if (counts & vk::SampleCountFlagBits::e16)
+	{
+		return vk::SampleCountFlagBits::e16;
+	}
+	if (counts & vk::SampleCountFlagBits::e8)
+	{
+		return vk::SampleCountFlagBits::e8;
+	}
+	if (counts & vk::SampleCountFlagBits::e4)
+	{
+		return vk::SampleCountFlagBits::e4;
+	}
+	if (counts & vk::SampleCountFlagBits::e2)
+	{
+		return vk::SampleCountFlagBits::e2;
+	}
+
+	return vk::SampleCountFlagBits::e1;
+}
+
 // QueueFamilyIndex HVKContext::findGraphicsQueueFamily(vk::PhysicalDevice device)
 // {
 // 	QueueFamilyIndex index;
@@ -304,7 +336,7 @@ uint32_t HVKContext::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-vk::ImageView HVKContext::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags)
+vk::ImageView HVKContext::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels)
 {
 	vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo();
 	viewInfo.setImage(image)
@@ -314,7 +346,7 @@ vk::ImageView HVKContext::createImageView(vk::Image image, vk::Format format, vk
 			vk::ImageSubresourceRange()
 				.setAspectMask(aspectFlags)
 				.setBaseMipLevel(0)
-				.setLevelCount(1)
+				.setLevelCount(mipLevels)
 				.setBaseArrayLayer(0)
 				.setLayerCount(1));
 	vk::ImageView imageView = device.createImageView(viewInfo, nullptr);
@@ -351,18 +383,18 @@ vk::Format HVKContext::findDepthFormat()
 	return findSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-void HVKContext::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory)
+void HVKContext::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image &image, vk::DeviceMemory &imageMemory)
 {
 	vk::ImageCreateInfo imageInfo = vk::ImageCreateInfo();
 	imageInfo.setImageType(vk::ImageType::e2D)
 		.setExtent(vk::Extent3D().setWidth(width).setHeight(height).setDepth(1))
-		.setMipLevels(1)
+		.setMipLevels(mipLevels)
 		.setArrayLayers(1)
 		.setFormat(format)
 		.setTiling(tiling)
 		.setInitialLayout(vk::ImageLayout::eUndefined)
 		.setUsage(usage)
-		.setSamples(vk::SampleCountFlagBits::e1)
+		.setSamples(numSamples)
 		.setSharingMode(vk::SharingMode::eExclusive);
 
 	image = device.createImage(imageInfo, nullptr);
@@ -444,7 +476,7 @@ void HVKContext::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t 
 	endSingleTimeCommands(commandBuffer);
 }
 
-void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels)
 {
 	vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
 	vk::ImageMemoryBarrier barrier = vk::ImageMemoryBarrier();
@@ -453,7 +485,7 @@ void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::I
 		.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
 		.setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
 		.setImage(image)
-		.setSubresourceRange(vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setBaseMipLevel(0).setLevelCount(1).setBaseArrayLayer(0).setLayerCount(1));
+		.setSubresourceRange(vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setBaseMipLevel(0).setLevelCount(mipLevels).setBaseArrayLayer(0).setLayerCount(1));
 
 	vk::PipelineStageFlags sourceStage;
 	vk::PipelineStageFlags destinationStage;
@@ -475,6 +507,65 @@ void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::I
 	}
 
 	commandBuffer.pipelineBarrier(sourceStage, destinationStage, vk::DependencyFlags(0), 0, nullptr, 0, nullptr, 1, &barrier);
+	endSingleTimeCommands(commandBuffer);
+}
+
+void HVKContext::generateMipmaps(vk::Image image, vk::Format format, int32_t width, int32_t height, uint32_t mipLevels)
+{
+	vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(format);
+	if (!(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear))
+	{
+		throw std::runtime_error("texture image format does not support linear blitting!");
+	}
+
+	vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+
+	vk::ImageMemoryBarrier barrier = vk::ImageMemoryBarrier();
+	barrier.setImage(image)
+		.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+		.setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
+		.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
+
+	int32_t mipWidth = width;
+	int32_t mipHeight = height;
+	for (uint32_t i = 1; i < mipLevels; i++)
+	{
+		barrier.subresourceRange.setBaseMipLevel(i - 1);
+		barrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+			.setNewLayout(vk::ImageLayout::eTransferSrcOptimal)
+			.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+			.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), 0, nullptr, 0, nullptr, 1, &barrier);
+
+		vk::ImageBlit blit = vk::ImageBlit();
+		blit.setSrcOffsets(std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D(mipWidth, mipHeight, 1)})
+			.setSrcSubresource(vk::ImageSubresourceLayers().setAspectMask(vk::ImageAspectFlagBits::eColor).setMipLevel(i - 1).setBaseArrayLayer(0).setLayerCount(1))
+			.setDstOffsets(std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D(mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1)})
+			.setDstSubresource(vk::ImageSubresourceLayers().setAspectMask(vk::ImageAspectFlagBits::eColor).setMipLevel(i).setBaseArrayLayer(0).setLayerCount(1));
+
+		barrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal)
+			.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+			.setSrcAccessMask(vk::AccessFlagBits::eTransferRead)
+			.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(0), 0, nullptr, 0, nullptr, 1, &barrier);
+		if (mipWidth > 1)
+		{
+			mipWidth >>= 1;
+		}
+		if (mipHeight > 1)
+		{
+			mipHeight >>= 1;
+		}
+	}
+
+	barrier.subresourceRange.setBaseMipLevel(mipLevels - 1);
+	barrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+		.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+		.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+		.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(0), 0, nullptr, 0, nullptr, 1, &barrier);
+
 	endSingleTimeCommands(commandBuffer);
 }
 
@@ -595,6 +686,8 @@ void HVKContext::pickPhysicalDevice()
 		if (isDeviceSuitable(device))
 		{
 			physicalDevice = device;
+			msaaSamples = getMaxUsableSampleCount();
+			std::cout << (int)msaaSamples << " msaa\n";
 			break;
 		}
 	}
@@ -632,6 +725,7 @@ void HVKContext::init()
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
+	createColorResources();
 	createDepthResources();
 	createFramebuffers();
 
@@ -738,16 +832,22 @@ void HVKContext::createImageViews()
 
 	for (size_t i = 0; i < swapChainImages.size(); i++)
 	{
-		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
+		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, vk::ImageAspectFlagBits::eColor, 1);
 	}
+}
+
+void HVKContext::createColorResources()
+{
+	vk::Format colorFormat = swapChainImageFormat;
+	createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, colorFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, colorImage, colorImageMemory);
+	colorImageView = createImageView(colorImage, colorFormat, vk::ImageAspectFlagBits::eColor, 1);
 }
 
 void HVKContext::createDepthResources()
 {
 	vk::Format depthFormat = findDepthFormat();
-
-	createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
-	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+	createImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
+	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
 }
 
 void HVKContext::createFramebuffers()
@@ -756,7 +856,7 @@ void HVKContext::createFramebuffers()
 
 	for (size_t i = 0; i < swapChainImageViews.size(); i++)
 	{
-		std::array<vk::ImageView, 2> attachments = {swapChainImageViews[i], depthImageView};
+		std::array<vk::ImageView, 3> attachments = {colorImageView, depthImageView, swapChainImageViews[i]};
 
 		vk::FramebufferCreateInfo framebufferInfo = vk::FramebufferCreateInfo();
 		framebufferInfo.setRenderPass(renderPass)
@@ -790,12 +890,17 @@ void HVKContext::recreateSwapChain()
 
 	createSwapChain();
 	createImageViews();
+	createColorResources();
 	createDepthResources();
 	createFramebuffers();
 }
 
 void HVKContext::cleanupSwapChain()
 {
+	device.destroyImageView(colorImageView);
+	device.destroyImage(colorImage);
+	device.freeMemory(colorImageMemory);
+
 	device.destroyImageView(depthImageView);
 	device.destroyImage(depthImage);
 	device.freeMemory(depthImageMemory);
@@ -817,23 +922,33 @@ void HVKContext::createRenderPass()
 {
 	vk::AttachmentDescription colorAttachment = vk::AttachmentDescription();
 	colorAttachment.setFormat(swapChainImageFormat)
-		.setSamples(vk::SampleCountFlagBits::e1)
+		.setSamples(msaaSamples)
 		.setLoadOp(vk::AttachmentLoadOp::eClear)
 		.setStoreOp(vk::AttachmentStoreOp::eStore)
 		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
 		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
 		.setInitialLayout(vk::ImageLayout::eUndefined)
-		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+		.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
 	vk::AttachmentDescription depthAttachment = vk::AttachmentDescription();
 	depthAttachment.setFormat(findDepthFormat())
-		.setSamples(vk::SampleCountFlagBits::e1)
+		.setSamples(msaaSamples)
 		.setLoadOp(vk::AttachmentLoadOp::eClear)
 		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
 		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
 		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
 		.setInitialLayout(vk::ImageLayout::eUndefined)
 		.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+	vk::AttachmentDescription colorAttachmentResolve = vk::AttachmentDescription();
+	colorAttachmentResolve.setFormat(swapChainImageFormat)
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStoreOp(vk::AttachmentStoreOp::eStore)
+		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
 	vk::AttachmentReference colorAttachmentRef = vk::AttachmentReference();
 	colorAttachmentRef.setAttachment(0)
@@ -843,24 +958,30 @@ void HVKContext::createRenderPass()
 	depthAttachmentRef.setAttachment(1)
 		.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
+	vk::AttachmentReference colorAttachmentResolveRef = vk::AttachmentReference();
+	colorAttachmentResolveRef.setAttachment(2)
+		.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
 	vk::SubpassDescription subpass = vk::SubpassDescription();
 	subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
 		.setColorAttachmentCount(1)
 		.setPColorAttachments(&colorAttachmentRef)
-		.setPDepthStencilAttachment(&depthAttachmentRef);
+		.setPDepthStencilAttachment(&depthAttachmentRef)
+		.setPResolveAttachments(&colorAttachmentResolveRef);
 
 	vk::SubpassDependency dependency = vk::SubpassDependency();
 	dependency.setSrcSubpass(vk::SubpassExternal)
 		.setDstSubpass(0)
 		.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput |
 						 vk::PipelineStageFlagBits::eLateFragmentTests)
-		.setSrcAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite)
+		.setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite |
+						  vk::AccessFlagBits::eDepthStencilAttachmentWrite)
 		.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput |
 						 vk::PipelineStageFlagBits::eEarlyFragmentTests)
 		.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite |
 						  vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
-	std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+	std::array<vk::AttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
 	vk::RenderPassCreateInfo renderPassInfo = vk::RenderPassCreateInfo();
 	renderPassInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
 		.setPAttachments(attachments.data())
