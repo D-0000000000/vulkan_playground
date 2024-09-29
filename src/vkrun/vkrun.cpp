@@ -121,7 +121,7 @@ void HVKApp::createGraphicsPipeline()
 
 	vk::PipelineMultisampleStateCreateInfo multisampling = vk::PipelineMultisampleStateCreateInfo();
 	multisampling.setSampleShadingEnable(vk::False)
-		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
+		.setRasterizationSamples(context->getSampleCount());
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil = vk::PipelineDepthStencilStateCreateInfo();
 	depthStencil.setDepthTestEnable(vk::True)
