@@ -50,20 +50,22 @@ int main(int argc, char *argv[])
 	HVKApp Llidar;
 	// HVKGUI gui;
 
-	// read_lvx_file(argv[1], point_vertex, point_idx);
-	read_lvx_file("misc/L.lvx", point_vertex, point_idx);
+	read_lvx_file(argv[1], point_vertex, point_idx);
+	point_idx.resize(240000 * 9);
+	// read_lvx_file("misc/L.lvx", point_vertex, point_idx);
 	Llidar.setIndexedVertex(point_vertex, point_idx);
 
 	std::thread fraps(fraps_main);
 
-	HVKApp Rlidar;
-	read_lvx_file("misc/R.lvx", point_vertex, point_idx);
-	for (auto &vv : point_vertex)
-	{
-		vv.pos.z += 0.3402;
-		vv.color.r = 1.0;
-	}
-	Rlidar.setIndexedVertex(point_vertex, point_idx);
+	// HVKApp Rlidar;
+	// read_lvx_file("misc/R.lvx", point_vertex, point_idx);
+	// for (auto &vv : point_vertex)
+	// {
+	// 	vv.pos.z += 0.3082;
+	// 	vv.color.r = 1.0;
+	// 	vv.pos.x -= 0.005;
+	// }
+	// Rlidar.setIndexedVertex(point_vertex, point_idx);
 
 	HVKMesh viking;
 	SimpleOBJReader sor("model/viking_room.obj");
@@ -77,9 +79,9 @@ int main(int argc, char *argv[])
 		Llidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
 		Llidar.init();
 
-		Rlidar.setContext(context);
-		Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
-		Rlidar.init();
+		// Rlidar.setContext(context);
+		// Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
+		// Rlidar.init();
 
 		viking.setContext(context);
 		viking.init();
@@ -91,7 +93,7 @@ int main(int argc, char *argv[])
 
 			Llidar.drawFrame();
 			// Rlidar.drawFrame();
-			viking.drawFrame();
+			// viking.drawFrame();
 
 			context->drawEnd();
 			frame_count++;
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
 		context->mainLoopExit();
 
 		Llidar.deinit();
-		Rlidar.deinit();
+		// Rlidar.deinit();
 		viking.deinit();
 		context->deinit();
 	}

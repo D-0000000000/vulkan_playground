@@ -51,7 +51,7 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 	uint8_t device_count = ((LvxFilePrivateHeader *)rxbuf)->device_count;
 	for (int i = 0; i < device_count; i++)
 	{
-	fin.read((char *)rxbuf, sizeof(LvxDeviceInfo));
+		fin.read((char *)rxbuf, sizeof(LvxDeviceInfo));
 	}
 	size_t cur_offset = sizeof(LvxFilePublicHeader) + sizeof(LvxFilePrivateHeader) + device_count * sizeof(LvxDeviceInfo);
 	while (cur_offset < file_size)
@@ -62,9 +62,6 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 		cur_offset += sizeof(FrameHeader);
 		size_t block_size = fh->next_offset - fh->current_offset;
 		size_t next_offset = fh->next_offset;
-		// std::cout << fh->current_offset << " " << (block_size - sizeof(FrameHeader)) << " " << (block_size - sizeof(FrameHeader)) % sizeof(LvxBasePackDetail) << "\n";
-
-		// for (int i = 0; i < pack_num; i++)
 		while (cur_offset < next_offset)
 		{
 			int hsize = sizeof(LvxBasePackDetail) - sizeof(LvxBasePackDetail::raw_point) - sizeof(LvxBasePackDetail::pack_size);
@@ -137,7 +134,7 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 			}
 			else if (bpd->data_type == kExtendCartesian)
 			{
-				std::cout << "kExtendCartesian\n";
+				// std::cout << "kExtendCartesian\n";
 				fin.read((char *)rxbuf, psize);
 				LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)rxbuf;
 				for (int i = 0; i < SINGLE_POINT_NUM; i++)
@@ -157,7 +154,7 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 			}
 			else if (bpd->data_type == kDualExtendCartesian)
 			{
-				std::cout << "kDualExtendCartesian\n";
+				// std::cout << "kDualExtendCartesian\n";
 				fin.read((char *)rxbuf, psize);
 				LivoxDualExtendRawPoint *lerp = (LivoxDualExtendRawPoint *)rxbuf;
 				for (int i = 0; i < DUAL_POINT_NUM; i++)
@@ -195,60 +192,61 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 					bool echo_flag = false;
 					for (int j = 0; j < 3; j++)
 					{
-						// if ((lerp[i].tag & 0b00110000) != 0b00000000)
-						// {
-						// 	continue;
-						// }
-						Vertex vt;
-						glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
-						glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-						vt.pos = pos;
-						vt.color = color;
-						lvxpc.push_back(vt);
-						// if ((lerp[i].tag & 0b00110000) == 0b00000000)
-						// {
-						// 	// lvxpc.push_back(vt);
-						// 	echo_flag = true;
-						// }
-						// else if ((lerp[i].tag & 0b00110000) == 0b00010000)
-						// {
-						// 	// lvxpc.push_back(vt);
-						// }
-						// else if ((lerp[i].tag & 0b00110000) == 0b00100000)
-						// {
-						// 	// lvxpc.push_back(vt);
-						// 	echo_flag = true;
-						// }
-						// else if ((lerp[i].tag & 0b00110000) == 0b00110000)
-						// {
-						// 	// lvxpc.push_back(vt);
-						// 	echo_flag = true;
-						// }
-						// else
-						// {
-						// 	echo_flag = true;
-						// 	std::cout << "tag!!!\n";
-						// }
+						if (((lerp[j].tag & 0b00001111) != 0b00000000))
+						{
+							echo_flag = true;
+							// continue;
+							break;
+						}
 					}
-					// if (!echo_flag)
-					// {
-					// 	for (int j = 0; j < 3; j++)
-					// 	{
-					// 		Vertex vt;
-					// 		glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
-					// 		glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-					// 		vt.pos = pos;
-					// 		vt.color = color;
-					// 		if ((lerp[i].tag & 0b00110000) == 0b00010000)
-					// 		{
-					// 			lvxpc.push_back(vt);
-					// 		}
-					// 		else
-					// 		{
-					// 			std::cout << "tag!!!\n";
-					// 		}
-					// 	}
-					// }
+					if (((lerp[0].tag & 0b00110000) == 0b00000000))
+					{
+						echo_flag = true;
+					}
+					if (!echo_flag)
+					{
+						// std::array<Vertex, 3> return3;
+						// for (int j = 0; j < 3; j++)
+						// {
+						// 	Vertex vt;
+						// 	glm::vec3 pos(lerp[j].x / 1000.0, lerp[j].y / 1000.0, lerp[j].z / 1000.0);
+						// 	glm::vec3 color = glm_lvx_color(lerp[j].reflectivity);
+						// 	vt.pos = pos;
+						// 	vt.color = color;
+						// 	return3[j] = vt;
+						// }
+						// if ((glm::length(return3[1].pos - return3[0].pos) < 0.1) && (glm::length(return3[2].pos - return3[0].pos)) < 0.1)
+						// {
+
+						// }
+						for (int j = 0; j < 3; j++)
+						{
+							Vertex vt;
+							glm::vec3 pos(lerp[j].x / 1000.0, lerp[j].y / 1000.0, lerp[j].z / 1000.0);
+							glm::vec3 color = glm_lvx_color(lerp[j].reflectivity);
+							vt.pos = pos;
+							vt.color = color;
+							std::cout << (lerp[j].tag >> 4) << " " << (uint32_t)lerp[j].reflectivity << " ";
+							// if ((lerp[j].tag & 0b00110000) == 0b00000000)
+							// {
+							// 	vt.color = glm::vec3(1.0f, 1.0f, 1.0f);
+							// }
+							// if ((lerp[j].tag & 0b00110000) == 0b00010000)
+							// {
+							// 	vt.color = glm::vec3(0.0f, 1.0f, 0.0f);
+							// }
+							if ((lerp[j].tag & 0b00110000) == 0b00100000)
+							{
+								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
+							}
+							else if ((lerp[j].tag & 0b00110000) == 0b00110000)
+							{
+								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
+							}
+							lvxpc.push_back(vt);
+						}
+						// std::cout << "\n";
+					}
 				}
 			}
 			else if (bpd->data_type == kTripleExtendSpherical)
