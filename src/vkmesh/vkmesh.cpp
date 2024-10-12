@@ -16,6 +16,13 @@ void HVKMesh::setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &i
 	return;
 }
 
+void HVKMesh::setMeshTexturePath(std::string mPath, std::string tPath)
+{
+	meshPath = mPath;
+	texturePath = tPath;
+	return;
+}
+
 void HVKMesh::init()
 {
 	initVulkan();
@@ -67,7 +74,7 @@ void HVKMesh::createTextureImage()
 {
 	spng_ctx *ctx = spng_ctx_new(0);
 	spng_set_crc_action(ctx, SPNG_CRC_USE, SPNG_CRC_USE);
-	FILE *png = fopen("model/viking_room.png", "rb");
+	FILE *png = fopen(texturePath.c_str(), "rb");
 	spng_set_png_file(ctx, png);
 	struct spng_ihdr ihdr;
 	int ret = spng_get_ihdr(ctx, &ihdr);

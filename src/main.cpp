@@ -36,26 +36,18 @@ void fraps_main()
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2)
-	{
-		std::cout << "File name\n";
-		return 0;
-	}
 
 	std::vector<Vertex> point_vertex;
 	std::vector<uint32_t> point_idx;
 
+	std::thread fraps(fraps_main);
+
 	auto context = std::shared_ptr<HVKContext>(new HVKContext);
 	context->init();
+
 	HVKApp Llidar;
-	// HVKGUI gui;
-
-	read_lvx_file(argv[1], point_vertex, point_idx);
-	point_idx.resize(240000 * 9);
-	// read_lvx_file("misc/L.lvx", point_vertex, point_idx);
+	read_lvx_file("misc/L.lvx", point_vertex, point_idx);
 	Llidar.setIndexedVertex(point_vertex, point_idx);
-
-	std::thread fraps(fraps_main);
 
 	// HVKApp Rlidar;
 	// read_lvx_file("misc/R.lvx", point_vertex, point_idx);
@@ -67,11 +59,15 @@ int main(int argc, char *argv[])
 	// }
 	// Rlidar.setIndexedVertex(point_vertex, point_idx);
 
-	HVKMesh viking;
-	SimpleOBJReader sor("model/viking_room.obj");
-	sor.getIndexedVertex(point_vertex, point_idx);
-	std::cout << point_vertex.size() << " " << point_idx.size() << " viking\n";
-	viking.setIndexedVertex(point_vertex, point_idx);
+	// HVKMesh viking;
+	// // SimpleOBJReader sor("model/viking_room.obj");
+	// SimpleOBJReader sor("model/crane.obj");
+	// sor.getIndexedVertex(point_vertex, point_idx);
+	// std::cout << point_vertex.size() << " " << point_idx.size() << " viking\n";
+	// viking.setIndexedVertex(point_vertex, point_idx);
+	// viking.setMeshTexturePath("model.crane.obj", "model/viking_room.png");
+
+	HVKGUI gui;
 
 	try
 	{
@@ -79,12 +75,15 @@ int main(int argc, char *argv[])
 		Llidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
 		Llidar.init();
 
+		gui.setContext(context);
+		gui.init();
+
 		// Rlidar.setContext(context);
 		// Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
 		// Rlidar.init();
 
-		viking.setContext(context);
-		viking.init();
+		// viking.setContext(context);
+		// viking.init();
 
 		while (!context->isClosed())
 		{
@@ -94,6 +93,7 @@ int main(int argc, char *argv[])
 			Llidar.drawFrame();
 			// Rlidar.drawFrame();
 			// viking.drawFrame();
+			gui.drawFrame();
 
 			context->drawEnd();
 			frame_count++;
@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
 
 		Llidar.deinit();
 		// Rlidar.deinit();
-		viking.deinit();
+		// viking.deinit();
+		gui.deinit();
 		context->deinit();
 	}
 	catch (const std::exception &e)

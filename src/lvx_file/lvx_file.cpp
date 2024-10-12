@@ -205,20 +205,6 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 					}
 					if (!echo_flag)
 					{
-						// std::array<Vertex, 3> return3;
-						// for (int j = 0; j < 3; j++)
-						// {
-						// 	Vertex vt;
-						// 	glm::vec3 pos(lerp[j].x / 1000.0, lerp[j].y / 1000.0, lerp[j].z / 1000.0);
-						// 	glm::vec3 color = glm_lvx_color(lerp[j].reflectivity);
-						// 	vt.pos = pos;
-						// 	vt.color = color;
-						// 	return3[j] = vt;
-						// }
-						// if ((glm::length(return3[1].pos - return3[0].pos) < 0.1) && (glm::length(return3[2].pos - return3[0].pos)) < 0.1)
-						// {
-
-						// }
 						for (int j = 0; j < 3; j++)
 						{
 							Vertex vt;
@@ -226,15 +212,6 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 							glm::vec3 color = glm_lvx_color(lerp[j].reflectivity);
 							vt.pos = pos;
 							vt.color = color;
-							std::cout << (lerp[j].tag >> 4) << " " << (uint32_t)lerp[j].reflectivity << " ";
-							// if ((lerp[j].tag & 0b00110000) == 0b00000000)
-							// {
-							// 	vt.color = glm::vec3(1.0f, 1.0f, 1.0f);
-							// }
-							// if ((lerp[j].tag & 0b00110000) == 0b00010000)
-							// {
-							// 	vt.color = glm::vec3(0.0f, 1.0f, 0.0f);
-							// }
 							if ((lerp[j].tag & 0b00110000) == 0b00100000)
 							{
 								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -243,9 +220,18 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 							{
 								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
 							}
+							if ((lerp[j].tag & 0b00001100) != 0b00000000)
+							{
+								std::cout << "noise!!!\n";
+								vt.color = glm::vec3(1.0f, 0.0f, 1.0f);
+							}
+							if ((lerp[j].tag & 0b00000011) != 0b00000000)
+							{
+								std::cout << "noise!!!\n";
+								vt.color = glm::vec3(1.0f, 0.0f, 1.0f);
+							}
 							lvxpc.push_back(vt);
 						}
-						// std::cout << "\n";
 					}
 				}
 			}

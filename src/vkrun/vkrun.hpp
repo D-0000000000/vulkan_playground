@@ -1,13 +1,6 @@
 #ifndef _VULKAN_RUN_HPP_
 #define _VULKAN_RUN_HPP_
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_vulkan.h"
-#include "imgui/imgui.h"
-
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

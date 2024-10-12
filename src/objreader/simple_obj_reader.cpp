@@ -13,6 +13,35 @@ SimpleOBJReader::~SimpleOBJReader()
 	}
 }
 
+glm::ivec3 read_face(std::string str)
+{
+	std::vector<uint32_t> spilt;
+	spilt.clear();
+	for (uint32_t i = 0; i < str.length(); i++)
+	{
+		if (str[i] == '/')
+		{
+			spilt.push_back(i);
+		}
+	}
+	glm::ivec3 face;
+	std::string fx = str.substr(0, spilt[0]);
+	std::string fy = str.substr(spilt[0] + 1, spilt[1] - spilt[0] - 1);
+	std::string fz = spilt[1] != str.size() ? str.substr(spilt[1] + 1, str.size() - spilt[1] - 1) : "";
+	auto str2int = [](std::string s)
+	{
+		if (s.length() == 0)
+		{
+			return 0;
+		}
+		int ret = 0;
+		sscanf(s.c_str(), "%d", &ret);
+		return ret;
+	};
+	face = glm::ivec3(str2int(fx), str2int(fy), str2int(fz));
+	return face;
+}
+
 void SimpleOBJReader::readOBJ(char *file_name)
 {
 	std::cout << file_name << " file_name\n";
@@ -56,14 +85,17 @@ void SimpleOBJReader::readOBJ(char *file_name)
 			glm::ivec3 vve[3];
 			for (int i = 0; i < 3; i++)
 			{
-				uint32_t x, y, z;
-				sscanf(vv[i].c_str(), "%d/%d/%d", &x, &y, &z);
-				vve[i] = glm::ivec3(x, y, z);
-				if (vertices.size() < x)
+				glm::ivec3 xyz = read_face(vv[i]);
+				// std::cout << xyz.x << " xyzx\n";
+				// uint32_t x, y, z;
+				// sscanf(vv[i].c_str(), "%d/%d/%d", &x, &y, &z);
+				// vve[i] = glm::ivec3(x, y, z);P
+				vve[i] = xyz;
+				if (vertices.size() < xyz.x)
 				{
-					vertices.resize(x);
+					vertices.resize(xyz.x);
 				}
-				vertices[x - 1] = {vertex[x - 1], glm::vec3(0.0f, 0.0f, 0.0f), vertex_tex_coord[y - 1]};
+				vertices[xyz.x - 1] = {vertex[xyz.x - 1], glm::vec3(0.0f, 0.0f, 0.0f), vertex_tex_coord[xyz.y - 1]};
 			}
 			face.push_back(glm::ivec3(vve[0].x, vve[1].x, vve[2].x));
 		}

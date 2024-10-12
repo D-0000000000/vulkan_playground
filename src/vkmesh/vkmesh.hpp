@@ -1,9 +1,6 @@
 #ifndef _VKMESH_HPP_
 #define _VKMESH_HPP_
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -39,6 +36,8 @@ public:
 
 	void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
 
+	void setMeshTexturePath(std::string mPath, std::string tPath);
+
 	void setContext(std::shared_ptr<HVKContext> dev)
 	{
 		context = dev;
@@ -71,6 +70,9 @@ private:
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+
+	std::string meshPath;
+	std::string texturePath;
 
 	void initVulkan();
 
