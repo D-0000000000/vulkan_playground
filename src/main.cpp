@@ -45,19 +45,25 @@ int main(int argc, char *argv[])
 	auto context = std::shared_ptr<HVKContext>(new HVKContext);
 	context->init();
 
+	auto camera = std::shared_ptr<HVKCamera>(new HVKCamera);
+	camera->setContext(context);
+	camera->init();
+
 	HVKApp Llidar;
+	Llidar.setCamera(camera);
 	read_lvx_file("misc/L.lvx", point_vertex, point_idx);
 	Llidar.setIndexedVertex(point_vertex, point_idx);
 
-	// HVKApp Rlidar;
-	// read_lvx_file("misc/R.lvx", point_vertex, point_idx);
-	// for (auto &vv : point_vertex)
-	// {
-	// 	vv.pos.z += 0.3082;
-	// 	vv.color.r = 1.0;
-	// 	vv.pos.x -= 0.005;
-	// }
-	// Rlidar.setIndexedVertex(point_vertex, point_idx);
+	HVKApp Rlidar;
+	Rlidar.setCamera(camera);
+	read_lvx_file("misc/R.lvx", point_vertex, point_idx);
+	for (auto &vv : point_vertex)
+	{
+		vv.pos.z += 0.3082;
+		vv.color.r = 1.0;
+		vv.pos.x -= 0.005;
+	}
+	Rlidar.setIndexedVertex(point_vertex, point_idx);
 
 	// HVKMesh viking;
 	// // SimpleOBJReader sor("model/viking_room.obj");
@@ -66,6 +72,11 @@ int main(int argc, char *argv[])
 	// std::cout << point_vertex.size() << " " << point_idx.size() << " viking\n";
 	// viking.setIndexedVertex(point_vertex, point_idx);
 	// viking.setMeshTexturePath("model.crane.obj", "model/viking_room.png");
+	HVKMesh iroha;
+	SimpleOBJReader sor("model/CH0156/Model/CH0156_Tank.obj");
+	sor.getIndexedVertex(point_vertex, point_idx);
+	iroha.setIndexedVertex(point_vertex, point_idx);
+	iroha.setMeshTexturePath("model/CH0156/Model/CH0156_Tank.obj", "model/CH0156/Model/Texture/CH0156_Tank_01.png");
 
 	HVKGUI gui;
 
@@ -75,12 +86,16 @@ int main(int argc, char *argv[])
 		Llidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
 		Llidar.init();
 
+		iroha.setContext(context);
+		iroha.setCamera(camera);
+		iroha.init();
+
 		gui.setContext(context);
 		gui.init();
 
-		// Rlidar.setContext(context);
-		// Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
-		// Rlidar.init();
+		Rlidar.setContext(context);
+		Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
+		Rlidar.init();
 
 		// viking.setContext(context);
 		// viking.init();
@@ -89,9 +104,11 @@ int main(int argc, char *argv[])
 		{
 			context->mainLoopBegin();
 			context->drawStart();
+			camera->updateCamObjectBuffers(context->getCurrentFrame());
 
 			Llidar.drawFrame();
-			// Rlidar.drawFrame();
+			iroha.drawFrame();
+			Rlidar.drawFrame();
 			// viking.drawFrame();
 			gui.drawFrame();
 
@@ -101,9 +118,11 @@ int main(int argc, char *argv[])
 		context->mainLoopExit();
 
 		Llidar.deinit();
-		// Rlidar.deinit();
+		iroha.deinit();
+		Rlidar.deinit();
 		// viking.deinit();
 		gui.deinit();
+		camera->deinit();
 		context->deinit();
 	}
 	catch (const std::exception &e)

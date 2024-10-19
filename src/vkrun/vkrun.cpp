@@ -19,13 +19,9 @@ void HVKApp::init()
 
 void HVKApp::initVulkan()
 {
-	createDescriptorSetLayout();
 	createGraphicsPipeline();
 	createVertexBuffer();
 	createIndexBuffer();
-	createUniformBuffers();
-	createDescriptorPool();
-	createDescriptorSets();
 }
 
 void HVKApp::deinit()
@@ -34,41 +30,11 @@ void HVKApp::deinit()
 	context->getDevice().destroyPipeline(graphicsPipeline);
 	context->getDevice().destroyPipelineLayout(pipelineLayout);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		context->getDevice().destroyBuffer(uniformBuffers[i]);
-		context->getDevice().freeMemory(uniformBuffersMemory[i]);
-	}
-
-	context->getDevice().destroyDescriptorPool(descriptorPool);
-
-	context->getDevice().destroyDescriptorSetLayout(descriptorSetLayout);
-
 	context->getDevice().destroyBuffer(indexBuffer);
 	context->getDevice().freeMemory(indexBufferMemory);
 
 	context->getDevice().destroyBuffer(vertexBuffer);
 	context->getDevice().freeMemory(vertexBufferMemory);
-}
-
-void HVKApp::createDescriptorSetLayout()
-{
-	vk::DescriptorSetLayoutBinding uboLayoutBinding = vk::DescriptorSetLayoutBinding();
-	uboLayoutBinding.setBinding(0)
-		.setDescriptorCount(1)
-		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-		.setPImmutableSamplers(nullptr)
-		.setStageFlags(vk::ShaderStageFlagBits::eVertex);
-
-	vk::DescriptorSetLayoutCreateInfo layoutInfo = vk::DescriptorSetLayoutCreateInfo();
-	layoutInfo.setBindingCount(1)
-		.setPBindings(&uboLayoutBinding);
-
-	descriptorSetLayout = context->getDevice().createDescriptorSetLayout(layoutInfo);
-	if (!descriptorSetLayout)
-	{
-		throw std::runtime_error("failed to create descriptor set layout!");
-	}
 }
 
 void HVKApp::createGraphicsPipeline()
@@ -152,8 +118,9 @@ void HVKApp::createGraphicsPipeline()
 		.setPDynamicStates(dynamicStates.data());
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo = vk::PipelineLayoutCreateInfo();
-	pipelineLayoutInfo.setSetLayoutCount(1)
-		.setPSetLayouts(&descriptorSetLayout);
+	std::vector<vk::DescriptorSetLayout> descSetLayouts(1, camera->getCameraDescSetLayout());
+	pipelineLayoutInfo.setSetLayoutCount(static_cast<uint32_t>(descSetLayouts.size()))
+		.setPSetLayouts(descSetLayouts.data());
 
 	pipelineLayout = context->getDevice().createPipelineLayout(pipelineLayoutInfo);
 	if (!pipelineLayout)
@@ -235,73 +202,6 @@ void HVKApp::createIndexBuffer()
 	context->getDevice().freeMemory(stagingBufferMemory);
 }
 
-void HVKApp::createUniformBuffers()
-{
-	vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffers[i], uniformBuffersMemory[i]);
-
-		context->getDevice().mapMemory(uniformBuffersMemory[i], 0, bufferSize, {}, &uniformBuffersMapped[i]);
-	}
-}
-
-void HVKApp::createDescriptorPool()
-{
-	vk::DescriptorPoolSize poolSize = vk::DescriptorPoolSize();
-	poolSize.setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
-
-	vk::DescriptorPoolCreateInfo poolInfo = vk::DescriptorPoolCreateInfo();
-	poolInfo.setPoolSizeCount(1)
-		.setPPoolSizes(&poolSize)
-		.setMaxSets(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
-
-	descriptorPool = context->getDevice().createDescriptorPool(poolInfo);
-	if (!descriptorPool)
-	{
-		throw std::runtime_error("failed to create descriptor pool!");
-	}
-}
-
-void HVKApp::createDescriptorSets()
-{
-	std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
-	vk::DescriptorSetAllocateInfo allocInfo = vk::DescriptorSetAllocateInfo();
-	allocInfo.setDescriptorPool(descriptorPool)
-		.setDescriptorSetCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT))
-		.setPSetLayouts(layouts.data());
-
-	descriptorSets.clear();
-	descriptorSets = context->getDevice().allocateDescriptorSets(allocInfo);
-	if (descriptorSets.empty())
-	{
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vk::DescriptorBufferInfo bufferInfo = vk::DescriptorBufferInfo();
-		bufferInfo.setBuffer(uniformBuffers[i])
-			.setOffset(0)
-			.setRange(sizeof(UniformBufferObject));
-
-		vk::WriteDescriptorSet descriptorWrite = vk::WriteDescriptorSet();
-		descriptorWrite.setDstSet(descriptorSets[i])
-			.setDstBinding(0)
-			.setDstArrayElement(0)
-			.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-			.setDescriptorCount(1)
-			.setPBufferInfo(&bufferInfo);
-
-		context->getDevice().updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
-	}
-}
-
 void HVKApp::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory)
 {
 	vk::BufferCreateInfo bufferInfo = vk::BufferCreateInfo();
@@ -338,24 +238,10 @@ void HVKApp::recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t image
 	vk::DeviceSize offsets[] = {0};
 	commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 	commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[context->getCurrentFrame()], 0, nullptr);
+	std::vector<vk::DescriptorSet> descSets(1, camera->getCameraDescSet(context->getCurrentFrame()));
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, static_cast<uint32_t>(descSets.size()), descSets.data(), 0, nullptr);
 	commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	return;
-}
-
-void HVKApp::updateUniformBuffer(uint32_t currentImage)
-{
-	UniformBufferObject ubo{};
-	ubo.model = glm::mat4(1.0f);
-	glm::vec3 eye(0.0f, 0.0f, 0.0f);
-	glm::vec3 center(0.0f, 0.0f, 0.0f);
-	glm::vec3 up(0.0f, 0.0f, 0.0f);
-	get_cam_params(eye, center, up);
-	ubo.view = glm::lookAt(eye, center, up);
-	vk::Extent2D curExtent = context->getSwapChainExtent();
-	ubo.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.1f, 1000.0f);
-	ubo.proj[1][1] *= -1;
-	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void HVKApp::setPrimitiveTopology(vk::PrimitiveTopology top)
@@ -367,8 +253,6 @@ void HVKApp::setPrimitiveTopology(vk::PrimitiveTopology top)
 void HVKApp::drawFrame()
 {
 	uint32_t imageIndex = context->getImageIndex();
-
-	updateUniformBuffer(context->getCurrentFrame());
 
 	recordCommandBuffer(context->getCurrentCommandBuffer(), imageIndex);
 }

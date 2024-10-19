@@ -23,6 +23,7 @@
 #include <thread>
 #include <vector>
 
+#include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
 
 class HVKMesh
@@ -43,8 +44,14 @@ public:
 		context = dev;
 	}
 
+	void setCamera(std::shared_ptr<HVKCamera> cam)
+	{
+		camera = cam;
+	}
+
 private:
 	std::shared_ptr<HVKContext> context;
+	std::shared_ptr<HVKCamera> camera;
 
 	vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
@@ -61,9 +68,9 @@ private:
 	vk::ImageView textureImageView;
 	vk::Sampler textureSampler;
 
-	std::vector<vk::Buffer> uniformBuffers;
-	std::vector<vk::DeviceMemory> uniformBuffersMemory;
-	std::vector<void *> uniformBuffersMapped;
+	// std::vector<vk::Buffer> uniformBuffers;
+	// std::vector<vk::DeviceMemory> uniformBuffersMemory;
+	// std::vector<void *> uniformBuffersMapped;
 
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
@@ -101,8 +108,6 @@ private:
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory);
 
 	void recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex);
-
-	void updateUniformBuffer(uint32_t currentImage);
 
 	vk::ShaderModule createShaderModule(const std::vector<char> &code);
 

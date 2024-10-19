@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "keyinput/keyinput.hpp"
+#include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
 
 const uint32_t WIDTH = 800;
@@ -47,10 +48,16 @@ public:
 		context = dev;
 	}
 
+	void setCamera(std::shared_ptr<HVKCamera> cam)
+	{
+		camera = cam;
+	}
+
 private:
 	std::shared_ptr<HVKContext> context;
+	std::shared_ptr<HVKCamera> camera;
 
-	vk::DescriptorSetLayout descriptorSetLayout;
+	// vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
 	vk::Pipeline graphicsPipeline;
 
@@ -59,12 +66,12 @@ private:
 	vk::Buffer indexBuffer;
 	vk::DeviceMemory indexBufferMemory;
 
-	std::vector<vk::Buffer> uniformBuffers;
-	std::vector<vk::DeviceMemory> uniformBuffersMemory;
-	std::vector<void *> uniformBuffersMapped;
+	// std::vector<vk::Buffer> uniformBuffers;
+	// std::vector<vk::DeviceMemory> uniformBuffersMemory;
+	// std::vector<void *> uniformBuffersMapped;
 
-	vk::DescriptorPool descriptorPool;
-	std::vector<vk::DescriptorSet> descriptorSets;
+	// vk::DescriptorPool descriptorPool;
+	// std::vector<vk::DescriptorSet> descriptorSets;
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;

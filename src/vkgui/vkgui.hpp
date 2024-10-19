@@ -13,13 +13,6 @@
 #include <fstream>
 #include <memory>
 
-// struct UniformBufferObject
-// {
-// 	alignas(16) glm::mat4 model;
-// 	alignas(16) glm::mat4 view;
-// 	alignas(16) glm::mat4 proj;
-// };
-
 class HVKGUI
 {
 public:
@@ -27,28 +20,6 @@ public:
 	{
 		context = dev;
 	}
-
-	// void initVulkan()
-	// {
-	// 	createDescriptorSetLayout();
-	// 	createGraphicsPipeline();
-	// 	// createVertexBuffer();
-	// 	// createIndexBuffer();
-	// 	// createUniformBuffers();
-	// 	createDescriptorPool();
-	// 	createDescriptorSets();
-	// }
-
-	// void cleanVulkan()
-	// {
-	// 	context->getDevice().destroyPipeline(graphicsPipeline);
-	// 	context->getDevice().destroyBuffer(vertexBuffer);
-	// 	context->getDevice().destroyBuffer(indexBuffer);
-	// 	context->getDevice().freeMemory(vertexBufferMemory);
-	// 	context->getDevice().freeMemory(indexBufferMemory);
-	// 	context->getDevice().destroyDescriptorPool(descriptorPool);
-	// 	context->getDevice().destroyDescriptorSetLayout(descriptorSetLayout);
-	// }
 
 	void initImGUI();
 
@@ -93,29 +64,7 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	// ImGuiIO io;
-
-	// void createDescriptorSetLayout();
-
-	// void createGraphicsPipeline();
-
-	// void createVertexBuffer();
-
-	// void createIndexBuffer();
-
-	// void createUniformBuffers();
-
 	void createDescriptorPool();
-
-	// void createDescriptorSets();
-
-	// void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory);
-
-	// void recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex);
-
-	// void updateUniformBuffer(uint32_t currentImage);
-
-	// bool updateBuffers();
 
 	vk::ShaderModule createShaderModule(const std::vector<char> &code);
 

@@ -37,7 +37,6 @@ void HVKMesh::initVulkan()
 	createGraphicsPipeline();
 	createVertexBuffer();
 	createIndexBuffer();
-	createUniformBuffers();
 	createDescriptorPool();
 	createDescriptorSets();
 }
@@ -47,12 +46,6 @@ void HVKMesh::deinit()
 
 	context->getDevice().destroyPipeline(graphicsPipeline);
 	context->getDevice().destroyPipelineLayout(pipelineLayout);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		context->getDevice().destroyBuffer(uniformBuffers[i]);
-		context->getDevice().freeMemory(uniformBuffersMemory[i]);
-	}
 
 	context->getDevice().destroyDescriptorPool(descriptorPool);
 
@@ -146,13 +139,6 @@ void HVKMesh::createTextureSampler()
 
 void HVKMesh::createDescriptorSetLayout()
 {
-	vk::DescriptorSetLayoutBinding uboLayoutBinding = vk::DescriptorSetLayoutBinding();
-	uboLayoutBinding.setBinding(0)
-		.setDescriptorCount(1)
-		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-		.setPImmutableSamplers(nullptr)
-		.setStageFlags(vk::ShaderStageFlagBits::eVertex);
-
 	vk::DescriptorSetLayoutBinding samplerLayoutBinding = vk::DescriptorSetLayoutBinding();
 	samplerLayoutBinding.setBinding(1)
 		.setDescriptorCount(1)
@@ -160,7 +146,7 @@ void HVKMesh::createDescriptorSetLayout()
 		.setPImmutableSamplers(nullptr)
 		.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
-	std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+	std::array<vk::DescriptorSetLayoutBinding, 1> bindings = {samplerLayoutBinding};
 
 	vk::DescriptorSetLayoutCreateInfo layoutInfo = vk::DescriptorSetLayoutCreateInfo();
 	layoutInfo.setBindingCount(static_cast<uint32_t>(bindings.size()))
@@ -254,8 +240,9 @@ void HVKMesh::createGraphicsPipeline()
 		.setPDynamicStates(dynamicStates.data());
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo = vk::PipelineLayoutCreateInfo();
-	pipelineLayoutInfo.setSetLayoutCount(1)
-		.setPSetLayouts(&descriptorSetLayout);
+	std::vector<vk::DescriptorSetLayout> descSetLayouts = {camera->getCameraDescSetLayout(), descriptorSetLayout};
+	pipelineLayoutInfo.setSetLayoutCount(static_cast<uint32_t>(descSetLayouts.size()))
+		.setPSetLayouts(descSetLayouts.data());
 
 	pipelineLayout = context->getDevice().createPipelineLayout(pipelineLayoutInfo);
 	if (!pipelineLayout)
@@ -337,28 +324,11 @@ void HVKMesh::createIndexBuffer()
 	context->getDevice().freeMemory(stagingBufferMemory);
 }
 
-void HVKMesh::createUniformBuffers()
-{
-	vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffers[i], uniformBuffersMemory[i]);
-
-		context->getDevice().mapMemory(uniformBuffersMemory[i], 0, bufferSize, {}, &uniformBuffersMapped[i]);
-	}
-}
-
 void HVKMesh::createDescriptorPool()
 {
-	std::array<vk::DescriptorPoolSize, 2> poolSizes = {vk::DescriptorPoolSize(), vk::DescriptorPoolSize()};
+	std::array<vk::DescriptorPoolSize, 1> poolSizes = {vk::DescriptorPoolSize()};
 
-	poolSizes[0].setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)).setType(vk::DescriptorType::eUniformBuffer);
-	poolSizes[1].setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)).setType(vk::DescriptorType::eCombinedImageSampler);
+	poolSizes[0].setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)).setType(vk::DescriptorType::eCombinedImageSampler);
 
 	vk::DescriptorPoolCreateInfo poolInfo = vk::DescriptorPoolCreateInfo();
 	poolInfo.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
@@ -389,19 +359,13 @@ void HVKMesh::createDescriptorSets()
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vk::DescriptorBufferInfo bufferInfo = vk::DescriptorBufferInfo();
-		bufferInfo.setBuffer(uniformBuffers[i])
-			.setOffset(0)
-			.setRange(sizeof(UniformBufferObject));
-
 		vk::DescriptorImageInfo imageInfo = vk::DescriptorImageInfo();
 		imageInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
 			.setImageView(textureImageView)
 			.setSampler(textureSampler);
 
-		std::array<vk::WriteDescriptorSet, 2> descriptorWrites = {vk::WriteDescriptorSet(), vk::WriteDescriptorSet()};
-		descriptorWrites[0].setDstSet(descriptorSets[i]).setDstBinding(0).setDstArrayElement(0).setDescriptorType(vk::DescriptorType::eUniformBuffer).setDescriptorCount(1).setPBufferInfo(&bufferInfo);
-		descriptorWrites[1].setDstSet(descriptorSets[i]).setDstBinding(1).setDstArrayElement(0).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDescriptorCount(1).setPImageInfo(&imageInfo);
+		std::array<vk::WriteDescriptorSet, 1> descriptorWrites = {vk::WriteDescriptorSet()};
+		descriptorWrites[0].setDstSet(descriptorSets[i]).setDstBinding(1).setDstArrayElement(0).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDescriptorCount(1).setPImageInfo(&imageInfo);
 
 		context->getDevice().updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
@@ -443,31 +407,16 @@ void HVKMesh::recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imag
 	vk::DeviceSize offsets[] = {0};
 	commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 	commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[context->getCurrentFrame()], 0, nullptr);
+	uint32_t currentFrame = context->getCurrentFrame();
+	std::vector<vk::DescriptorSet> descSets = {camera->getCameraDescSet(currentFrame), descriptorSets[currentFrame]};
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, static_cast<uint32_t>(descSets.size()), descSets.data(), 0, nullptr);
 	commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	return;
-}
-
-void HVKMesh::updateUniformBuffer(uint32_t currentImage)
-{
-	UniformBufferObject ubo{};
-	ubo.model = glm::mat4(1.0f);
-	glm::vec3 eye(0.0f, 0.0f, 0.0f);
-	glm::vec3 center(0.0f, 0.0f, 0.0f);
-	glm::vec3 up(0.0f, 0.0f, 0.0f);
-	get_cam_params(eye, center, up);
-	ubo.view = glm::lookAt(eye, center, up);
-	vk::Extent2D curExtent = context->getSwapChainExtent();
-	ubo.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.1f, 1000.0f);
-	ubo.proj[1][1] *= -1;
-	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void HVKMesh::drawFrame()
 {
 	uint32_t imageIndex = context->getImageIndex();
-
-	updateUniformBuffer(context->getCurrentFrame());
 
 	recordCommandBuffer(context->getCurrentCommandBuffer(), imageIndex);
 }
