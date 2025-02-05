@@ -13,7 +13,7 @@ glm::vec3 curup;
 
 void keyinput_main(GLFWwindow *window, uint32_t frame_rate)
 {
-	int state[13];
+	int state[14];
 	int keystat[] = {
 		GLFW_KEY_E,
 		GLFW_KEY_Q,
@@ -29,6 +29,7 @@ void keyinput_main(GLFWwindow *window, uint32_t frame_rate)
 		GLFW_KEY_LEFT_SHIFT,
 		GLFW_KEY_LEFT_CONTROL};
 	int keyfast = GLFW_KEY_SPACE;
+	int reset_cam = GLFW_KEY_R;
 	curpos = glm::vec3(0.0f, 0.0f, 0.0f);
 	curdir = glm::vec3(1.0f, 0.0f, 0.0f);
 	curup = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -44,6 +45,7 @@ void keyinput_main(GLFWwindow *window, uint32_t frame_rate)
 			state[i + 6] = glfwGetKey(window, keymov[i]);
 		}
 		state[12] = glfwGetKey(window, keyfast);
+		state[13] = glfwGetKey(window, reset_cam);
 		for (int i = 0; i < 3; i++)
 		{
 			auto vecy = glm::cross(curup, curdir);
@@ -72,6 +74,12 @@ void keyinput_main(GLFWwindow *window, uint32_t frame_rate)
 				curup.y = res.y;
 				curup.z = res.z;
 			}
+		}
+		if (state[13] == GLFW_PRESS)
+		{
+			curpos = glm::vec3(0.0f, 0.0f, 0.0f);
+			curdir = glm::vec3(1.0f, 0.0f, 0.0f);
+			curup = glm::vec3(0.0f, 0.0f, 1.0f);
 		}
 		tt += std::chrono::nanoseconds((int)(1000000000.0 / frame_rate));
 		std::this_thread::sleep_until(tt);

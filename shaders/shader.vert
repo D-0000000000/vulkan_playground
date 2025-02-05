@@ -11,10 +11,12 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec3 fragPos;
 
 void main()
 {
     gl_PointSize=1;
     gl_Position = camera.proj * camera.view * camera.model * vec4(inPosition, 1.0);
     fragColor = inColor;
+    fragPos = inPosition;
 }
