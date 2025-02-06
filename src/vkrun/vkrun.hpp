@@ -26,6 +26,7 @@
 #include "keyinput/keyinput.hpp"
 #include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
+#include "vkgui/vkgui.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -48,14 +49,16 @@ public:
 		context = dev;
 	}
 
-	void setCamera(std::shared_ptr<HVKCamera> cam)
+	void setBase(std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
 	{
 		camera = cam;
+		gui = g;
 	}
 
 private:
 	std::shared_ptr<HVKContext> context;
 	std::shared_ptr<HVKCamera> camera;
+	std::shared_ptr<HVKGUI> gui;
 
 	// vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
@@ -66,21 +69,12 @@ private:
 	vk::Buffer indexBuffer;
 	vk::DeviceMemory indexBufferMemory;
 
-	// std::vector<vk::Buffer> uniformBuffers;
-	// std::vector<vk::DeviceMemory> uniformBuffersMemory;
-	// std::vector<void *> uniformBuffersMapped;
-
-	// vk::DescriptorPool descriptorPool;
-	// std::vector<vk::DescriptorSet> descriptorSets;
-
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
 	vk::PrimitiveTopology topology;
 
 	void initVulkan();
-
-	void createDescriptorSetLayout();
 
 	void createGraphicsPipeline();
 
@@ -90,17 +84,9 @@ private:
 
 	void createIndexBuffer();
 
-	void createUniformBuffers();
-
-	void createDescriptorPool();
-
-	void createDescriptorSets();
-
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory);
 
 	void recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex);
-
-	void updateUniformBuffer(uint32_t currentImage);
 
 	vk::ShaderModule createShaderModule(const std::vector<char> &code);
 

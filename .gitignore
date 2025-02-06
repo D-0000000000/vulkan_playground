@@ -4,3 +4,4 @@ misc/
 model/
 textures/
 *.spv
+imgui.ini

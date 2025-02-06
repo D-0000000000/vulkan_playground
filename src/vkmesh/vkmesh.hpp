@@ -25,6 +25,7 @@
 
 #include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
+#include "vkgui/vkgui.hpp"
 
 class HVKMesh
 {
@@ -44,14 +45,16 @@ public:
 		context = dev;
 	}
 
-	void setCamera(std::shared_ptr<HVKCamera> cam)
+	void setBase(std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
 	{
 		camera = cam;
+		gui = g;
 	}
 
 private:
 	std::shared_ptr<HVKContext> context;
 	std::shared_ptr<HVKCamera> camera;
+	std::shared_ptr<HVKGUI> gui;
 
 	vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
@@ -67,10 +70,6 @@ private:
 	vk::DeviceMemory textureImageMemory;
 	vk::ImageView textureImageView;
 	vk::Sampler textureSampler;
-
-	// std::vector<vk::Buffer> uniformBuffers;
-	// std::vector<vk::DeviceMemory> uniformBuffersMemory;
-	// std::vector<void *> uniformBuffersMapped;
 
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;

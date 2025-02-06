@@ -13,6 +13,11 @@
 #include <fstream>
 #include <memory>
 
+struct HVKGUISettingsObject
+{
+	uint32_t pointSize;
+};
+
 class HVKGUI
 {
 public:
@@ -23,70 +28,46 @@ public:
 
 	void initImGUI();
 
-	void init()
-	{
-		createDescriptorPool();
-		initImGUI();
-		// initVulkan();
-	}
+	void init();
 
-	void deinit()
-	{
-		ImGui_ImplVulkan_Shutdown();
-		context->getDevice().destroyDescriptorPool(descriptorPool);
-		// cleanVulkan();
-	}
+	void deinit();
 
 	void drawFrame();
+
+	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory);
+
+	void createSettingsBuffers();
+
+	vk::DescriptorSetLayout getSettingsDescSetLayout();
+
+	vk::DescriptorSet getSettingsDescSet(uint32_t currentImage);
 
 private:
 	std::shared_ptr<HVKContext> context;
 	vk::PipelineCache pipelineCache;
-	vk::DescriptorPool descriptorPool;
+	vk::DescriptorPool guiDescriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
 	vk::RenderPass renderPass;
 
-	vk::DescriptorSetLayout descriptorSetLayout;
-	vk::PipelineLayout pipelineLayout;
-	vk::Pipeline graphicsPipeline;
+	std::vector<vk::Buffer> SettingsBuffers;
+	std::vector<vk::DeviceMemory> SettingsBuffersMemory;
+	std::vector<void *> SettingsBuffersMapped;
 
-	vk::Buffer vertexBuffer;
-	vk::DeviceMemory vertexBufferMemory;
-	vk::Buffer indexBuffer;
-	vk::DeviceMemory indexBufferMemory;
-	uint32_t prevVertexBufferSize = 0;
-	uint32_t prevIndexBufferSize = 0;
+	vk::DescriptorSetLayout settingsObjDescSetLayout;
+	vk::DescriptorPool settingsObjDescPool;
+	std::vector<vk::DescriptorSet> settingsObjDescSets;
 
-	std::vector<vk::Buffer> uniformBuffers;
-	std::vector<vk::DeviceMemory> uniformBuffersMemory;
-	std::vector<void *> uniformBuffersMapped;
-
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
+	HVKGUISettingsObject settingsObject;
 
 	void createDescriptorPool();
 
-	vk::ShaderModule createShaderModule(const std::vector<char> &code);
+	void createSettingsDescriptorPool();
 
-	static std::vector<char> readFile(const std::string &filename)
-	{
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+	void createSettingsDescriptorSetLayout();
 
-		if (!file.is_open())
-		{
-			throw std::runtime_error("failed to open file!");
-		}
+	void createSettingsDescriptorSets();
 
-		size_t fileSize = (size_t)file.tellg();
-		std::vector<char> buffer(fileSize);
-
-		file.seekg(0);
-		file.read(buffer.data(), fileSize);
-
-		file.close();
-
-		return buffer;
-	}
+	void updateSettingsBuffers(uint32_t currentImage);
 };
 
 #endif

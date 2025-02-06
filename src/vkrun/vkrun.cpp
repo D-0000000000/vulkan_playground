@@ -118,7 +118,7 @@ void HVKApp::createGraphicsPipeline()
 		.setPDynamicStates(dynamicStates.data());
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo = vk::PipelineLayoutCreateInfo();
-	std::vector<vk::DescriptorSetLayout> descSetLayouts(1, camera->getCameraDescSetLayout());
+	std::vector<vk::DescriptorSetLayout> descSetLayouts{camera->getCameraDescSetLayout(), gui->getSettingsDescSetLayout()};
 	pipelineLayoutInfo.setSetLayoutCount(static_cast<uint32_t>(descSetLayouts.size()))
 		.setPSetLayouts(descSetLayouts.data());
 
@@ -238,7 +238,8 @@ void HVKApp::recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t image
 	vk::DeviceSize offsets[] = {0};
 	commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 	commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-	std::vector<vk::DescriptorSet> descSets(1, camera->getCameraDescSet(context->getCurrentFrame()));
+	uint32_t currentFrame = context->getCurrentFrame();
+	std::vector<vk::DescriptorSet> descSets{camera->getCameraDescSet(currentFrame), gui->getSettingsDescSet(currentFrame)};
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, static_cast<uint32_t>(descSets.size()), descSets.data(), 0, nullptr);
 	commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	return;

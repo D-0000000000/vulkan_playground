@@ -50,8 +50,12 @@ int main(int argc, char *argv[])
 	camera->setContext(context);
 	camera->init();
 
+	auto gui = std::shared_ptr<HVKGUI>(new HVKGUI);
+	gui->setContext(context);
+	gui->init();
+
 	HVKApp Llidar;
-	Llidar.setCamera(camera);
+	Llidar.setBase(camera, gui);
 	// read_lvx_file("misc/L.lvx", point_vertex, point_idx);
 	// read_lvx_file(argv[1], point_vertex, point_idx);
 	read_pcd_file(argv[1], point_vertex, point_idx);
@@ -93,8 +97,6 @@ int main(int argc, char *argv[])
 	// iroha.setIndexedVertex(point_vertex, point_idx);
 	// iroha.setMeshTexturePath("model/CH0156/Model/CH0156_Tank.obj", "model/CH0156/Model/Texture/CH0156_Tank_01.png");
 
-	HVKGUI gui;
-
 	try
 	{
 		Llidar.setContext(context);
@@ -104,9 +106,6 @@ int main(int argc, char *argv[])
 		// iroha.setContext(context);
 		// iroha.setCamera(camera);
 		// iroha.init();
-
-		gui.setContext(context);
-		gui.init();
 
 		// Rlidar.setContext(context);
 		// Rlidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
@@ -125,7 +124,8 @@ int main(int argc, char *argv[])
 			// iroha.drawFrame();
 			// Rlidar.drawFrame();
 			// viking.drawFrame();
-			gui.drawFrame();
+
+			gui->drawFrame();
 
 			context->drawEnd();
 			frame_count++;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 		// iroha.deinit();
 		// Rlidar.deinit();
 		// viking.deinit();
-		gui.deinit();
+		gui->deinit();
 		camera->deinit();
 		context->deinit();
 	}
