@@ -40,13 +40,9 @@ public:
 
 	void setMeshTexturePath(std::string mPath, std::string tPath);
 
-	void setContext(std::shared_ptr<HVKContext> dev)
+	void setContext(std::shared_ptr<HVKContext> dev, std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
 	{
 		context = dev;
-	}
-
-	void setBase(std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
-	{
 		camera = cam;
 		gui = g;
 	}

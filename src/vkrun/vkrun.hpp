@@ -43,13 +43,9 @@ public:
 
 	void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
 
-	void setContext(std::shared_ptr<HVKContext> dev)
+	void setContext(std::shared_ptr<HVKContext> dev, std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
 	{
 		context = dev;
-	}
-
-	void setBase(std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
-	{
 		camera = cam;
 		gui = g;
 	}

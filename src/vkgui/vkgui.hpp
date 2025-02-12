@@ -22,13 +22,9 @@ struct HVKGUISettingsObject
 class HVKGUI
 {
 public:
-	void setContext(std::shared_ptr<HVKContext> dev)
+	void setContext(std::shared_ptr<HVKContext> dev, std::shared_ptr<HVKCamera> cam)
 	{
 		context = dev;
-	}
-
-	void setCamera(std::shared_ptr<HVKCamera> cam)
-	{
 		camera = cam;
 	}
 

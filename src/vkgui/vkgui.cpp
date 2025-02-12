@@ -22,7 +22,7 @@ void HVKGUI::init()
 		ImGuiKey_LeftShift,
 		ImGuiKey_LeftCtrl,
 		ImGuiKey_Space,
-		ImGuiKey_LeftAlt,
+		ImGuiKey_C,
 		ImGuiKey_R};
 	createSettingsBuffers();
 	createDescriptorPool();
@@ -243,8 +243,8 @@ void HVKGUI::drawFrame()
 	ImGui::SliderInt("PointSize", &pointSize, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
 	settingsObject.pointSize = pointSize;
 	ImGui::NewLine();
-	int state[14];
-	int statepos[6];
+	int state[15];
+	int statepos[7];
 	for (int i = 0; i < 6; i++)
 	{
 		state[i] = ImGui::IsKeyDown(keybinding[i]);
@@ -253,8 +253,6 @@ void HVKGUI::drawFrame()
 	{
 		state[i] = ImGui::IsKeyDown(keybinding[i]);
 	}
-	state[12] = ImGui::IsKeyDown(keybinding[12]);
-	state[13] = ImGui::IsKeyDown(keybinding[13]);
 
 	glm::vec3 curup, curdir, curpos;
 	camera->getLookAt(curpos, curdir, curup);
@@ -266,7 +264,16 @@ void HVKGUI::drawFrame()
 		{
 			float offset[3] = {0.0f, 0.0f, 0.0f};
 			offset[i] = ((state[6 + (i << 1)] == 1) << 1) - 1.0f;
-			offset[i] *= 0.025 * (state[12] == 1 ? 10.0f : 1.0f) * 60.0f / io.Framerate;
+			float velocity = 1.0f;
+			if (ImGui::IsKeyDown(ImGuiKey_Space))
+			{
+				velocity *= 10.0f;
+			}
+			if (ImGui::IsKeyDown(ImGuiKey_C))
+			{
+				velocity *= 0.1f;
+			}
+			offset[i] *= 0.025 * velocity * 60.0f / io.Framerate;
 			curpos += offset[0] * curdir + offset[1] * vecy + offset[2] * curup;
 		}
 	}
@@ -276,7 +283,7 @@ void HVKGUI::drawFrame()
 		if (state[i << 1] != state[i << 1 | 1])
 		{
 			float axis[3] = {0.0f, 0.0f, 0.0f};
-			axis[i] = ((state[i << 1] == GLFW_PRESS) << 1) - 1.0f;
+			axis[i] = ((state[i << 1] == 1) << 1) - 1.0f;
 			auto trans = glm::rotate(glm::mat4(1.0f), glm::radians(0.3f) * 60.0f / io.Framerate, axis[0] * curdir + axis[1] * vecy + axis[2] * curup);
 			auto res = trans * glm::vec4(curdir.x, curdir.y, curdir.z, 1.0f);
 			curdir.x = res.x;
@@ -288,7 +295,7 @@ void HVKGUI::drawFrame()
 			curup.z = res.z;
 		}
 	}
-	if (state[13] == 1)
+	if (ImGui::IsKeyDown(ImGuiKey_R))
 	{
 		camera->resetCamera();
 	}

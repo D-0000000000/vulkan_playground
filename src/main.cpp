@@ -50,12 +50,10 @@ int main(int argc, char *argv[])
 	camera->init();
 
 	auto gui = std::shared_ptr<HVKGUI>(new HVKGUI);
-	gui->setContext(context);
-	gui->setCamera(camera);
+	gui->setContext(context, camera);
 	gui->init();
 
 	HVKApp Llidar;
-	Llidar.setBase(camera, gui);
 	// read_lvx_file("misc/L.lvx", point_vertex, point_idx);
 	// read_lvx_file(argv[1], point_vertex, point_idx);
 	read_pcd_file(argv[1], point_vertex, point_idx);
@@ -99,7 +97,7 @@ int main(int argc, char *argv[])
 
 	try
 	{
-		Llidar.setContext(context);
+		Llidar.setContext(context, camera, gui);
 		Llidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
 		Llidar.init();
 
