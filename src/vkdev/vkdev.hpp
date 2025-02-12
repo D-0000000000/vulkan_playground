@@ -8,7 +8,6 @@
 #include <iostream>
 #include <memory>
 
-#include "keyinput/keyinput.hpp"
 #include "vkcommon/vkcommon.hpp"
 
 #ifdef NDEBUG

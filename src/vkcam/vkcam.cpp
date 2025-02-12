@@ -1,7 +1,13 @@
 #include "vkcam.hpp"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 void HVKCamera::init()
 {
+	eye = glm::vec3(0.0f, 0.0f, 0.0f);
+	center = glm::vec3(1.0f, 0.0f, 0.0f);
+	up = glm::vec3(0.0f, 0.0f, 1.0f);
 	createCamObjectBuffers();
 	createDescriptorSetLayout();
 	createDescriptorPool();
@@ -140,10 +146,6 @@ void HVKCamera::updateCamObjectBuffers(uint32_t currentImage)
 {
 	HVKCameraObject cameraObject{};
 	cameraObject.model = glm::mat4(1.0f);
-	glm::vec3 eye(0.0f, 0.0f, 0.0f);
-	glm::vec3 center(0.0f, 0.0f, 0.0f);
-	glm::vec3 up(0.0f, 0.0f, 0.0f);
-	get_cam_params(eye, center, up);
 	cameraObject.view = glm::lookAt(eye, center, up);
 	vk::Extent2D curExtent = context->getSwapChainExtent();
 	cameraObject.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.1f, 1000.0f);
@@ -160,4 +162,48 @@ vk::DescriptorSetLayout HVKCamera::getCameraDescSetLayout()
 vk::DescriptorSet HVKCamera::getCameraDescSet(uint32_t currentImage)
 {
 	return camObjDescSets[currentImage];
+}
+
+void HVKCamera::yaw(double y)
+{
+	return;
+}
+
+void HVKCamera::roll(double r)
+{
+	return;
+}
+
+void HVKCamera::pitch(double p)
+{
+	return;
+}
+
+void HVKCamera::move(glm::vec3 dir)
+{
+	return;
+}
+
+void HVKCamera::resetCamera()
+{
+	eye = glm::vec3(0.0f, 0.0f, 0.0f);
+	center = glm::vec3(1.0f, 0.0f, 0.0f);
+	up = glm::vec3(0.0f, 0.0f, 1.0f);
+	return;
+}
+
+void HVKCamera::getLookAt(glm::vec3 &e, glm::vec3 &c, glm::vec3 &u)
+{
+	e = eye;
+	c = center;
+	u = up;
+	return;
+}
+
+void HVKCamera::setLookAt(glm::vec3 &e, glm::vec3 &c, glm::vec3 &u)
+{
+	eye = e;
+	center = c;
+	up = u;
+	return;
 }

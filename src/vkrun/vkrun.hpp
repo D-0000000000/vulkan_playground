@@ -23,7 +23,6 @@
 #include <thread>
 #include <vector>
 
-#include "keyinput/keyinput.hpp"
 #include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
 #include "vkgui/vkgui.hpp"
@@ -108,13 +107,6 @@ private:
 		file.close();
 
 		return buffer;
-	}
-
-	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
-	{
-		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-		return VK_FALSE;
 	}
 };
 

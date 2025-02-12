@@ -1,10 +1,29 @@
 #include "vkgui.hpp"
 #include <set>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 void HVKGUI::init()
 {
 	memset(&settingsObject, 0, sizeof(settingsObject));
 	settingsObject.pointSize = 1;
+	keybinding = std::vector<ImGuiKey>{
+		ImGuiKey_E,
+		ImGuiKey_Q,
+		ImGuiKey_S,
+		ImGuiKey_W,
+		ImGuiKey_A,
+		ImGuiKey_D,
+		ImGuiKey_UpArrow,
+		ImGuiKey_DownArrow,
+		ImGuiKey_LeftArrow,
+		ImGuiKey_RightArrow,
+		ImGuiKey_LeftShift,
+		ImGuiKey_LeftCtrl,
+		ImGuiKey_Space,
+		ImGuiKey_LeftAlt,
+		ImGuiKey_R};
 	createSettingsBuffers();
 	createDescriptorPool();
 	createSettingsDescriptorPool();
@@ -153,7 +172,7 @@ void HVKGUI::createSettingsDescriptorSets()
 
 		vk::WriteDescriptorSet descriptorWrite = vk::WriteDescriptorSet();
 		descriptorWrite.setDstSet(settingsObjDescSets[i])
-			.setDstBinding(0)
+			.setDstBinding(1)
 			.setDstArrayElement(0)
 			.setDescriptorType(vk::DescriptorType::eUniformBuffer)
 			.setDescriptorCount(1)
@@ -223,6 +242,73 @@ void HVKGUI::drawFrame()
 	int pointSize = settingsObject.pointSize;
 	ImGui::SliderInt("PointSize", &pointSize, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
 	settingsObject.pointSize = pointSize;
+	ImGui::NewLine();
+	int state[14];
+	int statepos[6];
+	for (int i = 0; i < 6; i++)
+	{
+		state[i] = ImGui::IsKeyDown(keybinding[i]);
+	}
+	for (int i = 6; i < 12; i++)
+	{
+		state[i] = ImGui::IsKeyDown(keybinding[i]);
+	}
+	state[12] = ImGui::IsKeyDown(keybinding[12]);
+	state[13] = ImGui::IsKeyDown(keybinding[13]);
+
+	glm::vec3 curup, curdir, curpos;
+	camera->getLookAt(curpos, curdir, curup);
+	curdir = curdir - curpos;
+	for (int i = 0; i < 3; i++)
+	{
+		auto vecy = glm::cross(curup, curdir);
+		if (state[6 + (i << 1)] != state[6 + (i << 1 | 1)])
+		{
+			float offset[3] = {0.0f, 0.0f, 0.0f};
+			offset[i] = ((state[6 + (i << 1)] == 1) << 1) - 1.0f;
+			offset[i] *= 0.025 * (state[12] == 1 ? 10.0f : 1.0f) * 60.0f / io.Framerate;
+			curpos += offset[0] * curdir + offset[1] * vecy + offset[2] * curup;
+		}
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		auto vecy = glm::cross(curup, curdir);
+		if (state[i << 1] != state[i << 1 | 1])
+		{
+			float axis[3] = {0.0f, 0.0f, 0.0f};
+			axis[i] = ((state[i << 1] == GLFW_PRESS) << 1) - 1.0f;
+			auto trans = glm::rotate(glm::mat4(1.0f), glm::radians(0.3f) * 60.0f / io.Framerate, axis[0] * curdir + axis[1] * vecy + axis[2] * curup);
+			auto res = trans * glm::vec4(curdir.x, curdir.y, curdir.z, 1.0f);
+			curdir.x = res.x;
+			curdir.y = res.y;
+			curdir.z = res.z;
+			res = trans * glm::vec4(curup.x, curup.y, curup.z, 1.0f);
+			curup.x = res.x;
+			curup.y = res.y;
+			curup.z = res.z;
+		}
+	}
+	if (state[13] == 1)
+	{
+		camera->resetCamera();
+	}
+	else
+	{
+		glm::vec3 c = curpos + curdir;
+		camera->setLookAt(curpos, c, curup);
+	}
+
+	for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
+	{
+		if (!ImGui::IsKeyDown(key))
+		{
+			continue;
+		}
+
+		ImGui::SameLine();
+		ImGui::Text((key < ImGuiKey_NamedKey_BEGIN) ? "\"%s\"" : "\"%s\" %d", ImGui::GetKeyName(key), key);
+	}
+	ImGui::Text("%f,%f,%f", curdir.x, curdir.y, curdir.z);
 	updateSettingsBuffers(context->getCurrentFrame());
 
 	ImGui::End();

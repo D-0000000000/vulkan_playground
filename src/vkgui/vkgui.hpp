@@ -1,6 +1,7 @@
 #ifndef _VKGUI_HPP_
 #define _VKGUI_HPP_
 
+#include "vkcam/vkcam.hpp"
 #include "vkdev/vkdev.hpp"
 
 #include "imgui/backends/imgui_impl_glfw.h"
@@ -26,6 +27,11 @@ public:
 		context = dev;
 	}
 
+	void setCamera(std::shared_ptr<HVKCamera> cam)
+	{
+		camera = cam;
+	}
+
 	void initImGUI();
 
 	void init();
@@ -43,6 +49,7 @@ public:
 	vk::DescriptorSet getSettingsDescSet(uint32_t currentImage);
 
 private:
+	std::shared_ptr<HVKCamera> camera;
 	std::shared_ptr<HVKContext> context;
 	vk::PipelineCache pipelineCache;
 	vk::DescriptorPool guiDescriptorPool;
@@ -58,6 +65,7 @@ private:
 	std::vector<vk::DescriptorSet> settingsObjDescSets;
 
 	HVKGUISettingsObject settingsObject;
+	std::vector<ImGuiKey> keybinding;
 
 	void createDescriptorPool();
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10)
 
 project(lasvk)
 
@@ -24,7 +24,6 @@ src/ransac/ransac.cpp
 src/pcd_file/pcd_file.cpp
 src/vkdev/vkdev.cpp
 src/objreader/simple_obj_reader.cpp
-src/keyinput/keyinput.cpp
 src/imgui/imgui_tables.cpp
 src/imgui/backends/imgui_impl_glfw.cpp
 src/imgui/backends/imgui_impl_vulkan.cpp

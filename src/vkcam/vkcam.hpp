@@ -44,6 +44,20 @@ public:
 
 	vk::DescriptorSet getCameraDescSet(uint32_t currentImage);
 
+	void yaw(double y);
+
+	void roll(double r);
+
+	void pitch(double p);
+
+	void move(glm::vec3 dir);
+
+	void resetCamera();
+
+	void setLookAt(glm::vec3 &eye, glm::vec3 &center, glm::vec3 &up);
+
+	void getLookAt(glm::vec3 &eye, glm::vec3 &center, glm::vec3 &up);
+
 private:
 	std::shared_ptr<HVKContext> context;
 	HVKCameraObject camObject;
@@ -54,6 +68,10 @@ private:
 	vk::DescriptorSetLayout camObjDescSetLayout;
 	vk::DescriptorPool camObjDescPool;
 	std::vector<vk::DescriptorSet> camObjDescSets;
+
+	glm::vec3 eye;
+	glm::vec3 center;
+	glm::vec3 up;
 };
 
 #endif

@@ -1,4 +1,3 @@
-#include "keyinput/keyinput.hpp"
 #include "las_file/las_file.hpp"
 #include "laser/laser.hpp"
 #include "lvx_file/lvx_file.hpp"
@@ -52,6 +51,7 @@ int main(int argc, char *argv[])
 
 	auto gui = std::shared_ptr<HVKGUI>(new HVKGUI);
 	gui->setContext(context);
+	gui->setCamera(camera);
 	gui->init();
 
 	HVKApp Llidar;

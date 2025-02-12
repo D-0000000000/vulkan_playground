@@ -708,7 +708,6 @@ void HVKContext::initWindow()
 	window = glfwCreateWindow(960, 540, "Vulkan", nullptr, nullptr);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-	keyinput_init(window, 60);
 }
 
 void HVKContext::init()
@@ -762,7 +761,6 @@ void HVKContext::deinit()
 	glfwDestroyWindow(window);
 
 	glfwTerminate();
-	keyinput_deinit();
 }
 
 bool HVKContext::isClosed()
