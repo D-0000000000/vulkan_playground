@@ -315,7 +315,9 @@ void HVKGUI::drawFrame()
 		ImGui::SameLine();
 		ImGui::Text((key < ImGuiKey_NamedKey_BEGIN) ? "\"%s\"" : "\"%s\" %d", ImGui::GetKeyName(key), key);
 	}
-	ImGui::Text("%f,%f,%f", curdir.x, curdir.y, curdir.z);
+	ImGui::Text("dir %f,%f,%f", curdir.x, curdir.y, curdir.z);
+	ImGui::Text("eye %f,%f,%f", curpos.x, curpos.y, curpos.z);
+	ImGui::Text("up %f,%f,%f", curup.x, curup.y, curup.z);
 	updateSettingsBuffers(context->getCurrentFrame());
 
 	ImGui::End();

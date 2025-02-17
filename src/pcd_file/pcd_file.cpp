@@ -34,3 +34,27 @@ int read_pcd_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32
 
 	return 0;
 }
+
+int save_pcd_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind)
+{
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+	for (int i = 0; i < laspc.size(); i++)
+	{
+		lasind.push_back(i);
+	}
+
+	for (auto &idx : lasind)
+	{
+		cloud->push_back(pcl::PointXYZ(laspc[idx].pos.x, laspc[idx].pos.y, laspc[idx].pos.z));
+	}
+	cloud->height = 1;
+	cloud->width = lasind.size();
+	cloud->is_dense = true;
+	if (pcl::io::savePCDFile<pcl::PointXYZ>(filename, *cloud, true) == -1)
+	{
+		PCL_ERROR("Couldn't save file test_pcd.pcd \n");
+		return (-1);
+	}
+
+	return 0;
+}

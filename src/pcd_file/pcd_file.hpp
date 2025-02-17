@@ -7,4 +7,6 @@
 
 int read_pcd_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind);
 
+int save_pcd_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind);
+
 #endif

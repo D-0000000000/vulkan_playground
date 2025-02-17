@@ -148,7 +148,7 @@ void HVKCamera::updateCamObjectBuffers(uint32_t currentImage)
 	cameraObject.model = glm::mat4(1.0f);
 	cameraObject.view = glm::lookAt(eye, center, up);
 	vk::Extent2D curExtent = context->getSwapChainExtent();
-	cameraObject.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.1f, 1000.0f);
+	cameraObject.proj = glm::perspective(glm::radians(55.0f), curExtent.width / (float)curExtent.height, 0.01f, 100000.0f);
 	cameraObject.proj[1][1] *= -1;
 	memcpy(camObjectBuffersMapped[currentImage], &cameraObject, sizeof(cameraObject));
 	return;

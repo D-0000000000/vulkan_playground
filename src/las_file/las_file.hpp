@@ -70,6 +70,23 @@ struct point_data_record_format_0
 	uint16_t source_id;
 };
 
+struct point_data_record_format_1
+{
+	int32_t X;
+	int32_t Y;
+	int32_t Z;
+	uint16_t intensity;
+	uint8_t ret_num : 3;
+	uint8_t num_ret : 3;
+	uint8_t scan_dir_flag : 1;
+	uint8_t edge_of_flight_line : 1;
+	uint8_t classification;
+	int8_t scan_angle_rank;
+	uint8_t user_data;
+	uint16_t source_id;
+	double gps_time;
+};
+
 struct point_data_record_format_2
 {
 	int32_t X;
@@ -84,6 +101,26 @@ struct point_data_record_format_2
 	int8_t scan_angle_rank;
 	uint8_t user_data;
 	uint16_t source_id;
+	uint16_t red;
+	uint16_t green;
+	uint16_t blue;
+};
+
+struct point_data_record_format_3
+{
+	int32_t X;
+	int32_t Y;
+	int32_t Z;
+	uint16_t intensity;
+	uint8_t ret_num : 3;
+	uint8_t num_ret : 3;
+	uint8_t scan_dir_flag : 1;
+	uint8_t edge_of_flight_line : 1;
+	uint8_t classification;
+	int8_t scan_angle_rank;
+	uint8_t user_data;
+	uint16_t source_id;
+	double gps_time;
 	uint16_t red;
 	uint16_t green;
 	uint16_t blue;

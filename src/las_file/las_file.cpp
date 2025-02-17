@@ -2,6 +2,7 @@
 #include "ransac/random_sample_consensus.hpp"
 #include "vkcommon/vkcommon.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -53,78 +54,79 @@ int read_las_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32
 	uint8_t rxbuf[sizeof(las_public_header)];
 	memset(rxbuf, 0, sizeof(rxbuf));
 	fin.read((char *)rxbuf, sizeof(las_public_header));
-	// fout.write((char *)rxbuf, sizeof(las_public_header));
 	las_public_header *lph = (las_public_header *)rxbuf;
 	uint32_t offset_to_point_data = lph->offset_to_point_data;
 	uint32_t point_num = lph->point_rec_num;
 	std::cout << offset_to_point_data << " data offset\n";
 	fin.seekg(offset_to_point_data);
-	point_data_record_format_2 pdrf2;
-	glm::vec3 pl(0.44f, 0.06f, 0.89f);
-	pl = glm::normalize(pl);
-	glm::vec3 zaxis(0.0f, 0.0f, 1.0f);
-	glm::vec3 rotaxis = glm::cross(pl, zaxis);
-	float angle = glm::angle(pl, zaxis);
-	glm::mat4 rotmat = glm::rotate(glm::mat4(1.0f), glm::degrees(angle), glm::normalize(rotaxis));
-	glm::vec3 lidar_centre(1e9, 0, 0);
 	std::vector<std::pair<glm::vec3, glm::vec3>> pcc;
 	std::cout << point_num << " point_num\n";
-	int min_return_number = 0;
-	for (int i = 0; i < point_num; i++)
-	{
-		memset(&pdrf2, 0, sizeof(pdrf2));
-		fin.read((char *)&pdrf2, sizeof(pdrf2));
-		float x = (pdrf2.X * lph->X_scale) + lph->X_offset;
-		float y = (pdrf2.Y * lph->Y_scale) + lph->Y_offset;
-		float z = (pdrf2.Z * lph->Z_scale) + lph->Z_offset;
-		// std::cout << x << " " << y << " " << z << "\n";
-		auto color = glm_las_color(pdrf2.intensity);
-		// auto color = glm::vec3(0.8f, 0.0f, 0.0f);
-		// glm::vec4 pcp(x, y, z, 1.0f);
-		// pcp = rotmat * pcp;
-		// x = pcp.x;
-		// y = pcp.y;
-		// z = pcp.z;
-		// pdrf2.X = (x - lph->X_offset) / lph->X_scale;
-		// pdrf2.Y = (y - lph->X_offset) / lph->Y_scale;
-		// pdrf2.Z = (z - lph->X_offset) / lph->Z_scale;
 
-		float dist = sqrt(x * x + y * y + z * z);
-		if (dist < 2.0 || dist > 16.0)
+	std::cout << "POINT DATA RECORD FORMAT " << (uint32_t)lph->point_data_format_id << "\n";
+	if (lph->point_data_format_id == 0)
+	{
+		point_data_record_format_0 pdrf0;
+		for (int i = 0; i < point_num; i++)
 		{
-			continue;
-		}
-		min_return_number = std::max(min_return_number, (int)pdrf2.ret_num);
-		// std::cout << (int)pdrf2.ret_num << " ret\n";
-		pcc.push_back(std::make_pair(glm::vec3(x, y, z), color));
-		// fout.write((char *)&pdrf2, sizeof(pdrf2));
-		// uint32_t ref = dist * 25.5;
-		// if (ref > 255)
-		// {
-		// 	ref = 255;
-		// }
-		// color = glm_las_color(ref);
-		if (fabs(y) < 0.05 && fabs(z) < 0.05)
-		{
-			lidar_centre.x = std::min(lidar_centre.x, x);
+			memset(&pdrf0, 0, sizeof(pdrf0));
+			fin.read((char *)&pdrf0, sizeof(pdrf0));
+			float x = (pdrf0.X * lph->X_scale) + lph->X_offset;
+			float y = (pdrf0.Y * lph->Y_scale) + lph->Y_offset;
+			float z = (pdrf0.Z * lph->Z_scale) + lph->Z_offset;
+			auto color = glm_las_color((z - 1.2) * 255 / 0.3);
+			// x = pcp.x;
+			// y = pcp.y;
+			// z = pcp.z;
+			// pdrf2.X = (x - lph->X_offset) / lph->X_scale;
+			// pdrf2.Y = (y - lph->X_offset) / lph->Y_scale;
+			// pdrf2.Z = (z - lph->X_offset) / lph->Z_scale;
+			pcc.push_back(std::make_pair(glm::vec3(x, y, z), color));
 		}
 	}
-	std::cout << min_return_number << " min return number\n";
-	std::cout << lidar_centre.x << " " << lidar_centre.y << " " << lidar_centre.z << " centre\n";
-	float centre_dist = glm::length(lidar_centre);
+	else if (lph->point_data_format_id == 1)
+	{
+		point_data_record_format_1 pdrf1;
+		for (int i = 0; i < point_num; i++)
+		{
+			memset(&pdrf1, 0, sizeof(pdrf1));
+			fin.read((char *)&pdrf1, sizeof(pdrf1));
+			float x = (pdrf1.X * lph->X_scale) + lph->X_offset;
+			float y = (pdrf1.Y * lph->Y_scale) + lph->Y_offset;
+			float z = (pdrf1.Z * lph->Z_scale) + lph->Z_offset;
+			auto color = glm_las_color(z * 255 / 2.0);
+			// x = pcp.x;
+			// y = pcp.y;
+			// z = pcp.z;
+			// pdrf2.X = (x - lph->X_offset) / lph->X_scale;
+			// pdrf2.Y = (y - lph->X_offset) / lph->Y_scale;
+			// pdrf2.Z = (z - lph->X_offset) / lph->Z_scale;
+			pcc.push_back(std::make_pair(glm::vec3(x, y, z), color));
+		}
+	}
+	else if (lph->point_data_format_id == 2)
+	{
+		point_data_record_format_2 pdrf2;
+		for (int i = 0; i < point_num; i++)
+		{
+			memset(&pdrf2, 0, sizeof(pdrf2));
+			fin.read((char *)&pdrf2, sizeof(pdrf2));
+			float x = (pdrf2.X * lph->X_scale) + lph->X_offset;
+			float y = (pdrf2.Y * lph->Y_scale) + lph->Y_offset;
+			float z = (pdrf2.Z * lph->Z_scale) + lph->Z_offset;
+			auto color = glm_las_color(z * 255 / 2.0);
+			// x = pcp.x;
+			// y = pcp.y;
+			// z = pcp.z;
+			// pdrf2.X = (x - lph->X_offset) / lph->X_scale;
+			// pdrf2.Y = (y - lph->X_offset) / lph->Y_scale;
+			// pdrf2.Z = (z - lph->X_offset) / lph->Z_scale;
+			pcc.push_back(std::make_pair(glm::vec3(x, y, z), color));
+		}
+	}
 	for (auto pt : pcc)
 	{
 		laspc.push_back({pt.first, pt.second});
 	}
-	// for (auto pt : pcc)
-	// {
-	// 	float dist = glm::length(pt.first - lidar_centre);
-	// 	// if (dist > centre_dist)
-	// 	// {
-	// 	// 	continue;
-	// 	// }
-	// 	laspc.push_back({pt.first, pt.second});
-	// }
 	std::cout << laspc.size() << " lassize\n";
 	for (int i = 0; i < laspc.size(); i++)
 	{
@@ -132,10 +134,6 @@ int read_las_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32
 	}
 	fin.close();
 	// fout.close();
-	laspc.push_back({{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-	lasind.push_back(laspc.size());
-	laspc.push_back({lidar_centre, {1.0f, 1.0f, 1.0f}});
-	lasind.push_back(laspc.size());
 
 	return 0;
 }
