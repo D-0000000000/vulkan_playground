@@ -74,7 +74,8 @@ void HVKCamera::createCamObjectBuffers()
 void HVKCamera::createDescriptorPool()
 {
 	vk::DescriptorPoolSize poolSize = vk::DescriptorPoolSize();
-	poolSize.setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
+	poolSize.setDescriptorCount(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT))
+		.setType(vk::DescriptorType::eUniformBuffer);
 
 	vk::DescriptorPoolCreateInfo poolInfo = vk::DescriptorPoolCreateInfo();
 	poolInfo.setPoolSizeCount(1)
