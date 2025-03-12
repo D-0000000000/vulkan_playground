@@ -1,7 +1,11 @@
 #include "vkmesh.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+#ifdef _MSC_VER
+#include <stb_image.h>
+#else
 #include <stb/stb_image.h>
+#endif
 
 #include <spng.h>
 #include <vulkan/vulkan.hpp>

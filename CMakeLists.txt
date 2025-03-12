@@ -5,8 +5,9 @@ project(lasvk)
 find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
-
-find_package(PCL 1.2 REQUIRED)
+find_package(Stb REQUIRED)
+find_package(SPNG CONFIG REQUIRED)
+find_package(PCL REQUIRED)
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -39,10 +40,10 @@ src/vkgui/vkgui.cpp
 
 target_include_directories(lasvk PUBLIC src)
 target_include_directories(lasvk PUBLIC src/imgui)
+target_include_directories(lasvk PUBLIC ${Stb_INCLUDE_DIR})
 
 target_link_libraries(lasvk ${PCL_LIBRARIES} glfw Vulkan::Vulkan glm::glm)
-
-target_link_libraries(lasvk -lspng)
+target_link_libraries(lasvk $<IF:$<TARGET_EXISTS:spng::spng>,spng::spng,spng::spng_static>)
 
 add_custom_target(copy_shaders COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
