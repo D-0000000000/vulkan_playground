@@ -21,7 +21,7 @@ int read_pcd_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32
 
 	for (const auto &point : *cloud)
 	{
-		if (__builtin_isnan(point.x) || __builtin_isnan(point.y) || __builtin_isnan(point.z))
+		if (std::isnan(point.x) || std::isnan(point.y) || std::isnan(point.z))
 		{
 			continue;
 		}
