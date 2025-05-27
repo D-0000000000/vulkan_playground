@@ -1,5 +1,4 @@
 #include "lvx_file.hpp"
-#include "vkcommon/vkcommon.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -38,7 +37,7 @@ glm::vec3 glm_lvx_color(uint8_t ref)
 	return glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
 }
 
-int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32_t> &lvxind)
+int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 {
 	lvxpc.clear();
 	std::fstream fin;
@@ -119,12 +118,9 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 				LivoxRawPoint *lerp = (LivoxRawPoint *)rxbuf;
 				for (int i = 0; i < RAW_POINT_NUM; i++)
 				{
-					Vertex vt;
 					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
 					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-					vt.pos = pos;
-					vt.color = color;
-					lvxpc.push_back(vt);
+					lvxpc.push_back(pos);
 				}
 			}
 			else if (bpd->data_type == kSpherical)
@@ -139,12 +135,9 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 				LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)rxbuf;
 				for (int i = 0; i < SINGLE_POINT_NUM; i++)
 				{
-					Vertex vt;
 					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
 					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity);
-					vt.pos = pos;
-					vt.color = color;
-					lvxpc.push_back(vt);
+					lvxpc.push_back(pos);
 				}
 			}
 			else if (bpd->data_type == kExtendSpherical)
@@ -159,17 +152,12 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 				LivoxDualExtendRawPoint *lerp = (LivoxDualExtendRawPoint *)rxbuf;
 				for (int i = 0; i < DUAL_POINT_NUM; i++)
 				{
-					Vertex vt;
 					glm::vec3 pos(lerp[i].x1 / 1000.0, lerp[i].y1 / 1000.0, lerp[i].z1 / 1000.0);
 					glm::vec3 color = glm_lvx_color(lerp[i].reflectivity1);
-					vt.pos = pos;
-					vt.color = color;
-					lvxpc.push_back(vt);
+					lvxpc.push_back(pos);
 					pos = glm::vec3(lerp[i].x2 / 1000.0, lerp[i].y2 / 1000.0, lerp[i].z2 / 1000.0);
 					color = glm_lvx_color(lerp[i].reflectivity2);
-					vt.pos = pos;
-					vt.color = color;
-					lvxpc.push_back(vt);
+					lvxpc.push_back(pos);
 				}
 			}
 			else if (bpd->data_type == kDualExtendSpherical)
@@ -207,30 +195,27 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 					{
 						for (int j = 0; j < 3; j++)
 						{
-							Vertex vt;
 							glm::vec3 pos(lerp[j].x / 1000.0, lerp[j].y / 1000.0, lerp[j].z / 1000.0);
 							glm::vec3 color = glm_lvx_color(lerp[j].reflectivity);
-							vt.pos = pos;
-							vt.color = color;
 							if ((lerp[j].tag & 0b00110000) == 0b00100000)
 							{
-								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
+								color = glm::vec3(1.0f, 0.0f, 0.0f);
 							}
 							else if ((lerp[j].tag & 0b00110000) == 0b00110000)
 							{
-								vt.color = glm::vec3(1.0f, 0.0f, 0.0f);
+								color = glm::vec3(1.0f, 0.0f, 0.0f);
 							}
 							if ((lerp[j].tag & 0b00001100) != 0b00000000)
 							{
 								std::cout << "noise!!!\n";
-								vt.color = glm::vec3(1.0f, 0.0f, 1.0f);
+								color = glm::vec3(1.0f, 0.0f, 1.0f);
 							}
 							if ((lerp[j].tag & 0b00000011) != 0b00000000)
 							{
 								std::cout << "noise!!!\n";
-								vt.color = glm::vec3(1.0f, 0.0f, 1.0f);
+								color = glm::vec3(1.0f, 0.0f, 1.0f);
 							}
-							lvxpc.push_back(vt);
+							lvxpc.push_back(pos);
 						}
 					}
 				}
@@ -245,9 +230,5 @@ int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32
 		cur_offset = next_offset;
 	}
 	fin.close();
-	for (size_t i = 0; i < lvxpc.size(); i++)
-	{
-		lvxind.push_back(i);
-	}
 	return 0;
 }

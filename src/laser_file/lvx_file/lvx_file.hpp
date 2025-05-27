@@ -1,9 +1,10 @@
 #ifndef _LVX_FILE_HPP_
 #define _LVX_FILE_HPP_
 
-#include "vkcommon/vkcommon.hpp"
+#include <glm/glm.hpp>
 
 #include <cstdint>
+#include <vector>
 
 #define kMaxPointSize 1500
 #define kDefaultFrameDurationTime 50
@@ -209,6 +210,6 @@ typedef struct
 
 #pragma pack()
 
-int read_lvx_file(char *filename, std::vector<Vertex> &lvxpc, std::vector<uint32_t> &lvxind);
+int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc);
 
 #endif

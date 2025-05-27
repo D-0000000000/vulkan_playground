@@ -95,7 +95,7 @@ void SimpleOBJReader::readOBJ(char *file_name)
 				{
 					vertices.resize(xyz.x);
 				}
-				vertices[xyz.x - 1] = {vertex[xyz.x - 1], glm::vec3(0.0f, 0.0f, 0.0f), vertex_tex_coord[xyz.y - 1]};
+				vertices[xyz.x - 1] = Vertex(vertex[xyz.x - 1], glm::vec3(0.0f, 0.0f, 0.0f), vertex_tex_coord[xyz.y - 1]);
 			}
 			face.push_back(glm::ivec3(vve[0].x, vve[1].x, vve[2].x));
 		}
@@ -106,6 +106,9 @@ void SimpleOBJReader::readOBJ(char *file_name)
 		indices.push_back(f.x - 1);
 		indices.push_back(f.y - 1);
 		indices.push_back(f.z - 1);
+		indices.push_back(f.x - 1);
+		indices.push_back(f.z - 1);
+		indices.push_back(f.y - 1);
 	}
 	return;
 }

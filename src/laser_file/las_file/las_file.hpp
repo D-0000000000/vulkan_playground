@@ -1,11 +1,12 @@
 #ifndef _LAS_FILE_HPP_
 #define _LAS_FILE_HPP_
 
-#include "vkcommon/vkcommon.hpp"
+#include <glm/glm.hpp>
 
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <vector>
 
 #pragma pack(1)
 
@@ -128,72 +129,8 @@ struct point_data_record_format_3
 
 #pragma pack()
 
-struct las_file
-{
-	std::fstream flas;
-	las_public_header lph;
-	variable_length_record vlr;
+int read_las_file(const char *filename, std::vector<glm::vec3> &laspc);
 
-	void wr_init(char *filename)
-	{
-		flas.open(filename, std::ios::out | std::ios::binary);
-		memset(&lph, 0, sizeof(lph));
-		strcpy(lph.signature, "LASF");
-		lph.version_major = 1;
-		lph.version_minor = 2;
-		strcpy(lph.system_id, "AVIA");
-		strcpy(lph.gen_sw, "YINYC@XDD");
-		lph.header_size = sizeof(las_public_header);
-		lph.offset_to_point_data = sizeof(las_public_header) + sizeof(variable_length_record);
-		lph.var_len_rec_num = 1;
-		lph.point_data_format_id = 2;
-		lph.point_data_rec_len = sizeof(point_data_record_format_2);
-		lph.point_rec_num;
-		lph.point_ret_num;
-		lph.X_scale = 1;
-		lph.Y_scale = 1;
-		lph.Z_scale = 1;
-		lph.X_offset = 0;
-		lph.Y_offset = 0;
-		lph.Z_offset = 0;
-
-		memset(&vlr, 0, sizeof(vlr));
-		strcpy(vlr.user_id, "");
-
-		flas.write((char *)&lph, sizeof(lph));
-		flas.write((char *)&vlr, sizeof(vlr));
-
-		return;
-	}
-
-	void write_point(point_data_record_format_2 pdrf2)
-	{
-		flas.write((char *)&pdrf2, sizeof(pdrf2));
-		return;
-	}
-
-	void set_point_num(size_t point_num)
-	{
-		size_t wrpos = flas.tellp();
-		flas.seekg(0);
-		lph.point_rec_num = point_num;
-		lph.point_ret_num[0] = point_num;
-		flas.write((char *)&lph, sizeof(lph));
-		return;
-	}
-
-	void rd_init(char *filename)
-	{
-		flas.open(filename, std::ios::in | std::ios::binary);
-		return;
-	}
-
-	~las_file()
-	{
-		flas.close();
-	}
-};
-
-int read_las_file(char *filename, std::vector<Vertex> &laspc, std::vector<uint32_t> &lasind);
+int save_las_file(const char *filename, std::vector<glm::vec3> &laspc);
 
 #endif

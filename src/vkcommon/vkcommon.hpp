@@ -15,6 +15,27 @@ struct Vertex
 	glm::vec3 color;
 	glm::vec2 texCoord;
 
+	Vertex()
+	{
+		pos = glm::vec3(0.0f);
+		color = glm::vec3(0.0f);
+		texCoord = glm::vec2(0.0f);
+	}
+
+	Vertex(glm::vec3 p, glm::vec3 c)
+	{
+		pos = p;
+		color = c;
+		texCoord = glm::vec2(0.0f);
+	}
+
+	Vertex(glm::vec3 p, glm::vec3 c, glm::vec2 tc)
+	{
+		pos = p;
+		color = c;
+		texCoord = tc;
+	}
+
 	static vk::VertexInputBindingDescription getBindingDescription()
 	{
 		vk::VertexInputBindingDescription bindingDescription = vk::VertexInputBindingDescription();

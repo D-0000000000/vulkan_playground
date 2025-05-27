@@ -16,25 +16,28 @@ add_executable(lasvk)
 
 target_sources(lasvk
 PRIVATE
-src/laser/laser.cpp
-src/lvx_file/lvx_file.cpp
-src/vkcam/vkcam.cpp
-src/vkmesh/vkmesh.cpp
-src/ransac/ransac.cpp
-src/pcd_file/pcd_file.cpp
-src/vkdev/vkdev.cpp
-src/objreader/simple_obj_reader.cpp
-src/imgui/imgui_tables.cpp
-src/imgui/backends/imgui_impl_glfw.cpp
-src/imgui/backends/imgui_impl_vulkan.cpp
-src/imgui/imgui_widgets.cpp
-src/imgui/imgui_draw.cpp
-src/imgui/imgui.cpp
-src/imgui/imgui_demo.cpp
-src/main.cpp
-src/vkrun/vkrun.cpp
-src/las_file/las_file.cpp
-src/vkgui/vkgui.cpp
+./src/laser_file/lvx_file/lvx_file.cpp
+./src/laser_file/lvx_csv/lvx_csv.cpp
+./src/laser_file/pcd_file/pcd_file.cpp
+./src/laser_file/las_file/las_file.cpp
+./src/laser_file/vz_txt/vz_txt.cpp
+./src/objreader/simple_obj_reader.cpp
+
+./src/vkcam/vkcam.cpp
+./src/vkmesh/vkmesh.cpp
+./src/vkdev/vkdev.cpp
+./src/vkrun/vkrun.cpp
+./src/vkgui/vkgui.cpp
+
+./src/imgui/imgui_tables.cpp
+./src/imgui/backends/imgui_impl_glfw.cpp
+./src/imgui/backends/imgui_impl_vulkan.cpp
+./src/imgui/imgui_widgets.cpp
+./src/imgui/imgui_draw.cpp
+./src/imgui/imgui.cpp
+./src/imgui/imgui_demo.cpp
+
+./src/main.cpp
 )
 
 target_include_directories(lasvk PUBLIC src)
