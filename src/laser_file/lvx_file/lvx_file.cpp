@@ -63,12 +63,19 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 		size_t next_offset = fh->next_offset;
 		while (cur_offset < next_offset)
 		{
-			int hsize = sizeof(LvxBasePackDetail) - sizeof(LvxBasePackDetail::raw_point) - sizeof(LvxBasePackDetail::pack_size);
-			fin.read((char *)rxbuf, hsize);
+			// int hsize = sizeof(LvxBasePackDetail) - sizeof(LvxBasePackDetail::raw_point) - sizeof(LvxBasePackDetail::pack_size);
+			int hsize = sizeof(LvxBasePackDetail) - sizeof(LvxBasePackDetail::raw_point);
+			uint8_t lbpt[sizeof(LvxBasePackDetail)];
+			fin.read((char *)lbpt, hsize);
 			cur_offset += hsize;
-			LvxBasePackDetail *bpd = (LvxBasePackDetail *)rxbuf;
+			LvxBasePackDetail *bpd = (LvxBasePackDetail *)lbpt;
+			if (bpd->version != 5 || bpd->port_id >= 4)
+			{
+				std::cout << "invalid\n";
+				break;
+			}
+
 			size_t psize = 0;
-#if 1
 			if (bpd->data_type == kCartesian)
 			{
 				psize = RAW_POINT_NUM * sizeof(LivoxRawPoint);
@@ -107,15 +114,16 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 			}
 			else
 			{
-				std::cout << "Unknown data " << (uint32_t)bpd->data_type << "\n";
+				std::cout << "Unknown data " << (uint32_t)bpd->data_type << " at " << fin.tellg() << "\n";
+				break;
 			}
-#endif
+
 			cur_offset += psize;
 
 			if (bpd->data_type == kCartesian)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxRawPoint *lerp = (LivoxRawPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxRawPoint *lerp = (LivoxRawPoint *)bpd->raw_point;
 				for (int i = 0; i < RAW_POINT_NUM; i++)
 				{
 					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
@@ -125,14 +133,13 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 			}
 			else if (bpd->data_type == kSpherical)
 			{
-				fin.read((char *)rxbuf, psize);
+				fin.read((char *)bpd->raw_point, psize);
 				LivoxSpherPoint *lerp = (LivoxSpherPoint *)bpd->raw_point;
 			}
 			else if (bpd->data_type == kExtendCartesian)
 			{
-				// std::cout << "kExtendCartesian\n";
-				fin.read((char *)rxbuf, psize);
-				LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)bpd->raw_point;
 				for (int i = 0; i < SINGLE_POINT_NUM; i++)
 				{
 					glm::vec3 pos(lerp[i].x / 1000.0, lerp[i].y / 1000.0, lerp[i].z / 1000.0);
@@ -142,14 +149,13 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 			}
 			else if (bpd->data_type == kExtendSpherical)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxExtendSpherPoint *lerp = (LivoxExtendSpherPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxExtendSpherPoint *lerp = (LivoxExtendSpherPoint *)bpd->raw_point;
 			}
 			else if (bpd->data_type == kDualExtendCartesian)
 			{
-				// std::cout << "kDualExtendCartesian\n";
-				fin.read((char *)rxbuf, psize);
-				LivoxDualExtendRawPoint *lerp = (LivoxDualExtendRawPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxDualExtendRawPoint *lerp = (LivoxDualExtendRawPoint *)bpd->raw_point;
 				for (int i = 0; i < DUAL_POINT_NUM; i++)
 				{
 					glm::vec3 pos(lerp[i].x1 / 1000.0, lerp[i].y1 / 1000.0, lerp[i].z1 / 1000.0);
@@ -162,18 +168,18 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 			}
 			else if (bpd->data_type == kDualExtendSpherical)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxDualExtendSpherPoint *lerp = (LivoxDualExtendSpherPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxDualExtendSpherPoint *lerp = (LivoxDualExtendSpherPoint *)bpd->raw_point;
 			}
 			else if (bpd->data_type == kImu)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxImuPoint *lerp = (LivoxImuPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxImuPoint *lerp = (LivoxImuPoint *)bpd->raw_point;
 			}
 			else if (bpd->data_type == kTripleExtendCartesian)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxTripleExtendRawPoint *ltep = (LivoxTripleExtendRawPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxTripleExtendRawPoint *ltep = (LivoxTripleExtendRawPoint *)bpd->raw_point;
 				for (int i = 0; i < TRIPLE_POINT_NUM; i++)
 				{
 					LivoxExtendRawPoint *lerp = (LivoxExtendRawPoint *)&ltep[i];
@@ -222,8 +228,8 @@ int read_lvx_file(const char *filename, std::vector<glm::vec3> &lvxpc)
 			}
 			else if (bpd->data_type == kTripleExtendSpherical)
 			{
-				fin.read((char *)rxbuf, psize);
-				LivoxTripleExtendSpherPoint *lerp = (LivoxTripleExtendSpherPoint *)rxbuf;
+				fin.read((char *)bpd->raw_point, psize);
+				LivoxTripleExtendSpherPoint *lerp = (LivoxTripleExtendSpherPoint *)bpd->raw_point;
 			}
 		}
 		fin.seekg(next_offset);

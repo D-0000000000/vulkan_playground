@@ -198,7 +198,7 @@ typedef struct
 	uint8_t timestamp[8];
 	uint8_t raw_point[kMaxPointSize];
 	// uint8_t raw_point[RAW_POINT_NUM * sizeof(LivoxRawPoint)];
-	uint32_t pack_size;
+	// uint32_t pack_size;
 } LvxBasePackDetail;
 
 typedef struct
