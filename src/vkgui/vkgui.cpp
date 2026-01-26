@@ -211,6 +211,11 @@ void HVKGUI::initImGUI()
 
 	ImGui_ImplGlfw_InitForVulkan(context->getWindow(), true);
 
+	ImGui_ImplVulkan_PipelineInfo PipelineInfoMain = {};
+	PipelineInfoMain.RenderPass = context->getRenderPass();
+	PipelineInfoMain.Subpass = 0;
+	PipelineInfoMain.MSAASamples = (VkSampleCountFlagBits)context->getSampleCount();
+
 	ImGui_ImplVulkan_InitInfo initInfo = {};
 	initInfo.Instance = context->getInstance();
 	initInfo.PhysicalDevice = context->getPhysicalDevice();
@@ -219,12 +224,10 @@ void HVKGUI::initImGUI()
 	initInfo.Queue = context->getGraphicsQueue();
 	initInfo.PipelineCache = VK_NULL_HANDLE;
 	initInfo.DescriptorPool = guiDescriptorPool;
-	initInfo.RenderPass = context->getRenderPass();
-	initInfo.Subpass = 0;
 	auto swapChainSupport = context->querySwapChainSupport();
 	initInfo.MinImageCount = swapChainSupport.capabilities.minImageCount;
 	initInfo.ImageCount = swapChainSupport.capabilities.minImageCount;
-	initInfo.MSAASamples = (VkSampleCountFlagBits)context->getSampleCount();
+	initInfo.PipelineInfoMain = PipelineInfoMain;
 	initInfo.Allocator = VK_NULL_HANDLE;
 	initInfo.CheckVkResultFn = VK_NULL_HANDLE;
 	ImGui_ImplVulkan_Init(&initInfo);
