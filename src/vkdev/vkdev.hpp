@@ -11,7 +11,7 @@
 #include "vkcommon/vkcommon.hpp"
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+const bool enableValidationLayers = true;
 #else
 const bool enableValidationLayers = true;
 #endif
@@ -156,7 +156,7 @@ public:
 		return device;
 	}
 
-	VkSurfaceKHR getSurface()
+	vk::SurfaceKHR getSurface()
 	{
 		return surface;
 	}
@@ -212,10 +212,10 @@ public:
 	}
 
 private:
-	vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	vk::PhysicalDevice physicalDevice;
 	vk::Device device;
 	vk::Instance instance;
-	VkSurfaceKHR surface;
+	vk::SurfaceKHR surface;
 	GLFWwindow *window;
 	bool framebufferResized;
 	VkDebugUtilsMessengerEXT debugMessenger;

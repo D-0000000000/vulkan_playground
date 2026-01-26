@@ -485,7 +485,7 @@ void HVKContext::transitionImageLayout(vk::Image image, vk::Format format, vk::I
 		.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
 		.setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
 		.setImage(image)
-		.setSubresourceRange(vk::ImageSubresourceRange().setAspectMask(vk::ImageAspectFlagBits::eColor).setBaseMipLevel(0).setLevelCount(mipLevels).setBaseArrayLayer(0).setLayerCount(1));
+		.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, mipLevels, 0, 1));
 
 	vk::PipelineStageFlags sourceStage;
 	vk::PipelineStageFlags destinationStage;
@@ -539,9 +539,10 @@ void HVKContext::generateMipmaps(vk::Image image, vk::Format format, int32_t wid
 
 		vk::ImageBlit blit = vk::ImageBlit();
 		blit.setSrcOffsets(std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D(mipWidth, mipHeight, 1)})
-			.setSrcSubresource(vk::ImageSubresourceLayers().setAspectMask(vk::ImageAspectFlagBits::eColor).setMipLevel(i - 1).setBaseArrayLayer(0).setLayerCount(1))
+			.setSrcSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i - 1, 0, 1))
 			.setDstOffsets(std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D(mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1)})
-			.setDstSubresource(vk::ImageSubresourceLayers().setAspectMask(vk::ImageAspectFlagBits::eColor).setMipLevel(i).setBaseArrayLayer(0).setLayerCount(1));
+			.setDstSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i, 0, 1));
+		commandBuffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, image, vk::ImageLayout::eTransferDstOptimal, 1, &blit, vk::Filter::eLinear);
 
 		barrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal)
 			.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
@@ -818,7 +819,10 @@ void HVKContext::createSwapChain()
 
 	device.getSwapchainImagesKHR(swapChain, &imageCount, nullptr);
 	swapChainImages.resize(imageCount);
-	device.getSwapchainImagesKHR(swapChain, &imageCount, swapChainImages.data());
+	if (device.getSwapchainImagesKHR(swapChain, &imageCount, swapChainImages.data()) != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("cannot get swapchain images");
+	}
 
 	swapChainImageFormat = surfaceFormat.format;
 	swapChainExtent = extent;
