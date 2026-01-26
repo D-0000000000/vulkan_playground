@@ -59,21 +59,19 @@ int main(int argc, char *argv[])
 
 	std::vector<glm::vec3> inpc;
 	read_pcd_file(argv[1], inpc);
+	for (auto &pt : inpc)
+	{
+		point_vertex.push_back(Vertex(pt, i2color(pt.z * 256)));
+	}
 	for (int i = 0; i < inpc.size(); i++)
 	{
-		auto color = i2color((inpc[i].z - 1.2) * 255 / 0.5);
-		point_vertex.push_back(Vertex(inpc[i], color));
 		point_idx.push_back(i);
 	}
 
 	HVKApp Llidar;
-	// read_lvx_file(argv[1], point_vertex, point_idx);
-	// read_pcd_file(argv[1], point_vertex, point_idx);
-	// read_las_file(argv[1], point_vertex, point_idx);
 
 	Llidar.setIndexedVertex(point_vertex, point_idx);
 	Llidar.setPrimitiveTopology(vk::PrimitiveTopology::ePointList);
-	// save_pcd_file("misc/savepcd.pcd", point_vertex, point_idx);
 
 	// HVKMesh block;
 	// block.setContext(context, camera, gui);
