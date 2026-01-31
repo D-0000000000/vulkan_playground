@@ -11,6 +11,17 @@ void HVKApp::setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &in
 	return;
 }
 
+void HVKApp::updateIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind)
+{
+	vertices.clear();
+	indices.clear();
+	vertices = vx;
+	indices = ind;
+	updateIndexBuffer();
+	updateVertexBuffer();
+	return;
+}
+
 void HVKApp::init()
 {
 	// topology = vk::PrimitiveTopology::ePointList;
@@ -195,6 +206,44 @@ void HVKApp::createIndexBuffer()
 	context->getDevice().unmapMemory(stagingBufferMemory);
 
 	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer, indexBufferMemory);
+
+	context->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+	context->getDevice().destroyBuffer(stagingBuffer);
+	context->getDevice().freeMemory(stagingBufferMemory);
+}
+
+void HVKApp::updateVertexBuffer()
+{
+	vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+	vk::Buffer stagingBuffer;
+	vk::DeviceMemory stagingBufferMemory;
+	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
+
+	void *data;
+	context->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
+	context->getDevice().unmapMemory(stagingBufferMemory);
+
+	context->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	context->getDevice().destroyBuffer(stagingBuffer);
+	context->getDevice().freeMemory(stagingBufferMemory);
+}
+
+void HVKApp::updateIndexBuffer()
+{
+	vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+	vk::Buffer stagingBuffer;
+	vk::DeviceMemory stagingBufferMemory;
+	createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
+
+	void *data;
+	context->getDevice().mapMemory(stagingBufferMemory, 0, bufferSize, {}, &data);
+	memcpy(data, indices.data(), (size_t)bufferSize);
+	context->getDevice().unmapMemory(stagingBufferMemory);
 
 	context->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 

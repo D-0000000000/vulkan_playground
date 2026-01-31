@@ -5,9 +5,7 @@
 
 void HVKCamera::init()
 {
-	eye = glm::vec3(0.0f, 0.0f, 0.0f);
-	center = glm::vec3(1.0f, 0.0f, 0.0f);
-	up = glm::vec3(0.0f, 0.0f, 1.0f);
+	resetCamera();
 	createCamObjectBuffers();
 	createDescriptorSetLayout();
 	createDescriptorPool();
@@ -187,9 +185,9 @@ void HVKCamera::move(glm::vec3 dir)
 
 void HVKCamera::resetCamera()
 {
-	eye = glm::vec3(0.0f, 0.0f, 0.0f);
-	center = glm::vec3(1.0f, 0.0f, 0.0f);
-	up = glm::vec3(0.0f, 0.0f, 1.0f);
+	eye = glm::vec3(0.0f, 0.0f, 1.0f);
+	center = glm::vec3(0.0f, 0.0f, 0.0f);
+	up = glm::vec3(0.0f, 1.0f, 0.0f);
 	return;
 }
 

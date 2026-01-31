@@ -4,6 +4,7 @@
 #include "laser_file/pcd_file/pcd_file.hpp"
 #include "laser_file/vz_txt/vz_txt.hpp"
 #include "objreader/simple_obj_reader.hpp"
+#include "simulation/simulation.hpp"
 #include "vkgui/vkgui.hpp"
 #include "vkmesh/vkmesh.hpp"
 #include "vkrun/vkrun.hpp"
@@ -57,16 +58,15 @@ int main(int argc, char *argv[])
 		return glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
 	};
 
-	std::vector<glm::vec3> inpc;
-	read_pcd_file(argv[1], inpc);
-	for (auto &pt : inpc)
-	{
-		point_vertex.push_back(Vertex(pt, i2color(pt.z * 256)));
-	}
-	for (int i = 0; i < inpc.size(); i++)
-	{
-		point_idx.push_back(i);
-	}
+	sim_init();
+
+	glm::vec3 startpos = getPosition();
+	point_vertex.clear();
+	point_idx.clear();
+	point_vertex.push_back(Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
+	point_vertex.push_back(Vertex(startpos, glm::vec3(0.0f, 1.0f, 0.0f)));
+	point_idx.push_back(0);
+	point_idx.push_back(1);
 
 	HVKApp Llidar;
 
@@ -89,6 +89,15 @@ int main(int argc, char *argv[])
 
 		while (!context->isClosed())
 		{
+			glm::vec3 pos = getPosition();
+			point_vertex.clear();
+			point_idx.clear();
+			point_vertex.push_back(Vertex(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
+			point_vertex.push_back(Vertex(pos, glm::vec3(0.0f, 1.0f, 0.0f)));
+			point_idx.push_back(0);
+			point_idx.push_back(1);
+			Llidar.updateIndexedVertex(point_vertex, point_idx);
+
 			context->mainLoopBegin();
 			context->drawStart();
 			camera->updateCamObjectBuffers(context->getCurrentFrame());
@@ -108,6 +117,8 @@ int main(int argc, char *argv[])
 		gui->deinit();
 		camera->deinit();
 		context->deinit();
+
+		sim_deinit();
 	}
 	catch (const std::exception &e)
 	{

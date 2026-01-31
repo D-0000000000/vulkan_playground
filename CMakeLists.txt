@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 4.0)
 
 project(lasvk)
 
+set(CMAKE_CXX_STANDARD 20)
+
 find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
@@ -36,6 +38,8 @@ PRIVATE
 ./src/imgui/imgui_draw.cpp
 ./src/imgui/imgui.cpp
 ./src/imgui/imgui_demo.cpp
+
+./src/simulation/simulation.cpp
 
 ./src/main.cpp
 )

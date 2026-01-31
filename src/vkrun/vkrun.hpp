@@ -43,6 +43,8 @@ public:
 
 	void setIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
 
+	void updateIndexedVertex(std::vector<Vertex> &vx, std::vector<uint32_t> &ind);
+
 	void setContext(std::shared_ptr<HVKContext> dev, std::shared_ptr<HVKCamera> cam, std::shared_ptr<HVKGUI> g)
 	{
 		context = dev;
@@ -78,6 +80,10 @@ private:
 	void createVertexBuffer();
 
 	void createIndexBuffer();
+
+	void updateVertexBuffer();
+
+	void updateIndexBuffer();
 
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer &buffer, vk::DeviceMemory &bufferMemory);
 
